@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/FavIcon_logo1.png" type="image/png" />
+    <link rel="shortcut icon" href="%PUBLIC_URL%/FavIcon_logo1.png" />
+    <!-- Preload Splash Screen Logo -->
+    <link rel="preload" as="image" href="%PUBLIC_URL%/Logos/Transparent/logo1.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="OptiConnect - Professional Telecom GIS Platform for infrastructure management, network optimization, and geospatial analytics"
+    />
+    <meta
+      name="keywords"
+      content="telecom, GIS, network management, infrastructure, geospatial, analytics, mapping"
+    />
+    <meta name="author" content="OptiConnect Team" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/FavIcon_logo1.png" />
+    <!--
+      manifest.json provides metadata used when your web app is installed on a
+      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
+    -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <!--
+      Notice the use of %PUBLIC_URL% in the tags above.
+      It will be replaced with the URL of the `public` folder during the build.
+      Only files inside the `public` folder can be referenced from the HTML.
+
+      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
+      work correctly both with client-side routing and a non-root public URL.
+      Learn how to configure a non-root public URL by running `npm run build`.
+    -->
+    <title>OptiConnect - GIS Platform</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <!--
+      This HTML file is a template.
+      If you open it directly in the browser, you will see an empty page.
+
+      You can add webfonts, meta tags, or analytics to this file.
+      The build step will place the bundled scripts into the <body> tag.
+
+      To begin the development, run `npm start` or `yarn start`.
+      To create a production bundle, use `npm run build` or `yarn build`.
+    -->
+    <!-- Reload Loop Guard + Service Worker Registration -->
+    <script>
+      // ============================================================
+      // RELOAD LOOP GUARD — Prevents infinite reload from any source
+      // ============================================================
+      (function() {
+        var RELOAD_KEY = '__opticonnect_reload_guard';
+        var MAX_RELOADS = 3;
+        var WINDOW_MS = 60000; // 60 seconds
+
+        try {
+          var raw = sessionStorage.getItem(RELOAD_KEY);
+          var guard = raw ? JSON.parse(raw) : { count: 0, firstAt: Date.now() };
+
+          // Reset counter if outside the time window
+          if (Date.now() - guard.firstAt > WINDOW_MS) {
+            guard = { count: 0, firstAt: Date.now() };
+          }
+
+          guard.count++;
+          sessionStorage.setItem(RELOAD_KEY, JSON.stringify(guard));
+
+          // If too many reloads, block ALL future reloads from JS
+          if (guard.count > MAX_RELOADS) {
+            // Override window.location.reload to prevent further loops
+            window.location.reload = function() {
+              console.warn('[ReloadGuard] Blocked reload — loop detected (' + guard.count + ' reloads in ' + Math.round((Date.now() - guard.firstAt)/1000) + 's). Clearing guard in 60s.');
+            };
+            // Auto-reset after the window expires so manual refresh works
+            setTimeout(function() {
+              sessionStorage.removeItem(RELOAD_KEY);
+            }, WINDOW_MS);
+          }
+        } catch(e) { /* sessionStorage unavailable — skip guard */ }
+      })();
+
+      // ============================================================
+      // SERVICE WORKER REGISTRATION
+      // ============================================================
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('%PUBLIC_URL%/service-worker.js').then(function(registration) {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+
+            // Listen for new service worker updates and activate them immediately
+            registration.addEventListener('updatefound', function() {
+              var newWorker = registration.installing;
+              if (newWorker) {
+                newWorker.addEventListener('statechange', function() {
+                  if (newWorker.state === 'activated') {
+                    console.log('New ServiceWorker activated successfully.');
+                  }
+                });
+              }
+            });
+          }, function(err) {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

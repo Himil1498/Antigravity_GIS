@@ -1,0 +1,119 @@
+.sec-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+}
+
+.sec-modal-content {
+  background: var(--bg-surface, #ffffff);
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  max-width: 28rem;
+  width: 100%;
+  padding: 1.5rem;
+}
+
+.sec-modal-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  margin-bottom: 1rem;
+}
+
+.sec-modal-text {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #4b5563);
+  margin-bottom: 1rem;
+}
+
+.sec-modal-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  box-sizing: border-box;
+  background: var(--bg-surface, #ffffff);
+  color: var(--text-primary, #111827);
+}
+
+.sec-modal-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+.sec-modal-input.mono-center {
+  text-align: center;
+  font-size: 1.5rem;
+  letter-spacing: 0.2em;
+  font-family: monospace;
+}
+
+.sec-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.sec-modal-btn {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sec-modal-btn-cancel {
+  background: transparent;
+  border: 1px solid var(--border-color, #d1d5db);
+  color: var(--text-secondary, #374151);
+}
+
+.sec-modal-btn-cancel:hover {
+  background: var(--bg-surface-hover, #f9fafb);
+}
+
+.sec-modal-btn-primary {
+  background: #2563eb;
+  border: 1px solid #2563eb;
+  color: #fff;
+}
+
+.sec-modal-btn-primary:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.sec-modal-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  .sec-modal-content {
+    background: #1f2937;
+  }
+  .sec-modal-title { color: #f9fafb; }
+  .sec-modal-text { color: #d1d5db; }
+  .sec-modal-input {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+  .sec-modal-btn-cancel {
+    border-color: #4b5563;
+    color: #d1d5db;
+  }
+  .sec-modal-btn-cancel:hover {
+    background: #374151;
+  }
+}

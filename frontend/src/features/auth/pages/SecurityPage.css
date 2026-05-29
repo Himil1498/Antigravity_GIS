@@ -1,0 +1,227 @@
+.security-page-wrapper {
+  width: 100%;
+  max-w-7xl: none;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+.security-header {
+  margin-bottom: 2rem;
+}
+
+.security-back-btn {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted, #6b7280);
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-bottom: 1rem;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.security-back-btn:hover {
+  color: var(--text-primary, #111827);
+}
+
+.security-back-icon {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.25rem;
+}
+
+.security-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  margin-bottom: 0.5rem;
+}
+
+.security-subtitle {
+  color: var(--text-muted, #6b7280);
+}
+
+.security-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .security-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1440px) {
+  .security-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Glassmorphism Card Style */
+.security-card {
+  background: var(--bg-surface-translucent, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color, rgba(229, 231, 235, 0.6));
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Specific Card overrides to make the 2FA span wider on large screens */
+.security-card.span-2 {
+  grid-column: span 1;
+}
+
+@media (min-width: 1024px) {
+  .security-card.span-2 {
+    grid-column: span 2;
+  }
+}
+
+.security-card-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  margin-bottom: 1rem;
+}
+
+/* Row items for Account Info and Session */
+.security-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-color, rgba(229, 231, 235, 0.6));
+}
+
+.security-info-row:last-child {
+  border-bottom: none;
+}
+
+.security-info-label {
+  color: var(--text-muted, #4b5563);
+  font-size: 0.875rem;
+}
+
+.security-info-value {
+  font-weight: 500;
+  color: var(--text-primary, #111827);
+  font-size: 0.875rem;
+}
+
+/* Badges */
+.security-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge-blue {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+}
+
+.badge-green {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #047857;
+}
+
+.badge-red {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+}
+
+.value-highlight {
+  color: #2563eb;
+}
+
+.value-warning {
+  color: #d97706;
+}
+
+/* Best Practices Box */
+.security-best-practices {
+  background: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+}
+
+.bp-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.bp-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: #2563eb;
+  margin-top: 0.25rem;
+  flex-shrink: 0;
+}
+
+.bp-title {
+  font-weight: 600;
+  color: #1e3a8a;
+  margin-bottom: 0.5rem;
+}
+
+.bp-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bp-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #1e40af;
+}
+
+.bp-bullet {
+  color: #3b82f6;
+}
+
+/* Dark mode overrides */
+html.dark .security-back-btn:hover { color: #f9fafb; }
+html.dark .security-title { color: #f9fafb; }
+html.dark .security-card {
+  background: rgba(31, 41, 55, 0.6);
+  border-color: rgba(75, 85, 99, 0.4);
+}
+html.dark .security-card-title { color: #f9fafb; }
+html.dark .security-info-row { border-color: rgba(75, 85, 99, 0.4); }
+html.dark .security-info-label { color: #9ca3af; }
+html.dark .security-info-value { color: #f3f4f6; }
+html.dark .badge-blue { background-color: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+html.dark .badge-green { background-color: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+html.dark .badge-red { background-color: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+html.dark .value-highlight { color: #60a5fa; }
+html.dark .value-warning { color: #fbbf24; }
+
+html.dark .security-best-practices {
+  background: rgba(30, 58, 138, 0.2);
+  border-color: rgba(30, 58, 138, 0.5);
+}
+html.dark .bp-icon { color: #60a5fa; }
+html.dark .bp-title { color: #dbeafe; }
+html.dark .bp-item { color: #bfdbfe; }
+html.dark .bp-bullet { color: #60a5fa; }

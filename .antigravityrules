@@ -1,0 +1,40 @@
+# OptiConnect GIS - Agent Directives
+
+## Incremental Tailwind Migration (Strangler Fig Pattern)
+
+We are in the process of phasing out Tailwind CSS entirely in favor of a strictly semantic Vanilla CSS architecture using `design-system.css`. Due to the large number of existing files, we do NOT perform massive, project-wide migrations at once.
+
+When generating responses or code, you MUST adhere to the following rules:
+
+1. **The "New Code" Rule:** 
+   - Any brand new component, view, or page built from this point forward MUST be built using strictly Vanilla CSS.
+   - Do NOT use Tailwind CSS classes for new implementations.
+   - Utilize standard semantic CSS classes and reference the global CSS variables defined in `frontend/src/design-system.css` (e.g., `var(--ds-primary)`).
+
+2. **The "Boy Scout" Rule:** 
+   - Whenever you are asked to edit an *existing* component to add a feature or fix a bug, you must also strip its Tailwind classes and migrate its styling to Vanilla CSS as part of that modification.
+   - Extract the inline Tailwind utility classes into semantic CSS classes inside the component's corresponding CSS file (or `App.css` / `design-system.css` if it is a global pattern).
+
+3. **Global Aesthetics Mandate:**
+   - Always prioritize modern, premium aesthetics (Glassmorphism, CSS variables, vibrant dynamic accents) when replacing Tailwind.
+   - Do NOT simplify the UI; the Vanilla CSS replacement must look identical or better than the original Tailwind implementation.
+
+## Component Granularity & Architecture Rules
+
+4. **Strict File Size Limits (The 300-Line Rule):**
+   - **Page/View Constructs:** Must not exceed 250-300 lines.
+   - **UI Components & Hooks:** Keep under 150-200 lines.
+   - **Backend Controllers/Routes:** Keep under 150-200 lines.
+   - *Directive:* If a file exceeds these limits, you must decompose it into smaller, functional sub-components, helper files, or custom hooks immediately.
+
+5. **Centralized Data Fetching:**
+   - Do NOT use raw `fetch()` or `axios()` scattered inside components. 
+   - All external calls must route through typed API wrapper methods (`apiGet`, `apiPost`, etc.) configured from a central frontend services folder.
+
+6. **Strict TypeScript & Data Safety:**
+   - The `any` type is strictly banned. Ensure all functions, props, and API responses have explicit interfaces.
+   - Incoming backend requests (`POST`/`PUT`) must be validated via Zod (or similar schema validation) before interacting with Prisma/PostgreSQL.
+
+7. **Environment & AI Security:**
+   - The frontend is strictly prohibited from holding or executing AI API keys or direct LLM calls. All AI prompts must be securely proxied through the Express backend.
+   - Wrap backend route handlers in an `asyncHandler()` and throw instances of an `AppError` caught globally to prevent boilerplate try/catch blocks.

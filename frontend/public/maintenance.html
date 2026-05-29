@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Maintenance - OptiConnect GIS</title>
+    <!-- OptiConnect Branding Favicons -->
+    <link rel="icon" href="/FavIcon_logo1.png" type="image/png" />
+    <link rel="shortcut icon" href="/FavIcon_logo1.png" />
+    <link rel="apple-touch-icon" href="/FavIcon_logo1.png" />
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            text-align: center;
+        }
+        .container {
+            max-width: 600px;
+            padding: 40px;
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(51, 65, 85, 0.8);
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        p {
+            font-size: 1.125rem;
+            color: #94a3b8;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(96, 165, 250, 0.2);
+            border-left-color: #60a5fa;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1.5rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .status {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-top: 2rem;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Brand Logo -->
+        <img src="/Logos/Transparent_Dark/logo1.png" alt="OptiConnect GIS" style="width: 250px; height: auto; margin-bottom: 2rem; filter: brightness(0) invert(1) drop-shadow(0 0 10px rgba(96, 165, 250, 0.4)); opacity: 0.9;">
+        
+        <div class="spinner"></div>
+        <h1>System Update in Progress</h1>
+        <p>OptiConnect GIS is currently receiving scheduled upgrades and optimizations to enhance performance. We estimate to be back online shortly.</p>
+        <p style="font-size: 0.95rem; color: #cbd5e1;">Please leave this tab open. The page will <strong>automatically refresh</strong> once the update is safely completed.</p>
+        <div class="status" id="status-text">Waiting for connection...</div>
+    </div>
+
+    <script>
+        // Poll the health endpoint every 10 seconds to see if the backend is back online
+        let pollInterval;
+        let attempt = 1;
+        
+        // Force-clear service worker caches and unregister stale workers
+        // to ensure the reload after recovery serves the FRESH index.html
+        async function clearServiceWorkerCaches() {
+            if ('serviceWorker' in navigator) {
+                try {
+                    // Tell any waiting service worker to activate
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    if (registration) {
+                        if (registration.waiting) {
+                            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                        }
+                        // Force update check to pick up new SW from fresh deployment
+                        await registration.update();
+                        // Brief pause for new SW to activate
+                        await new Promise(r => setTimeout(r, 500));
+                        if (registration.waiting) {
+                            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                            await new Promise(r => setTimeout(r, 500));
+                        }
+                    }
+                    // Also purge all caches to guarantee fresh content
+                    const cacheNames = await caches.keys();
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                } catch (e) {
+                    // Non-critical, continue with reload
+                }
+            }
+        }
+
+        function checkHealth() {
+            document.getElementById('status-text').innerText = 'Attempting to reconnect (Attempt ' + attempt + ')...';
+            
+            // Strictly avoid caching to ensure we see the actual server recovery
+            fetch('/api/health?t=' + Date.now(), { 
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache' }
+            })
+                .then(response => {
+                    if (response.ok) {
+                        // The server is back and Nginx removed the maintenance block!
+                        document.getElementById('status-text').innerText = 'Connection restored! Reloading...';
+                        document.getElementById('status-text').style.color = '#4ade80';
+                        clearInterval(pollInterval);
+                        
+                        // CRITICAL: Clear SW caches BEFORE reloading to prevent stale HTML loop
+                        clearServiceWorkerCaches().then(() => {
+                            setTimeout(() => {
+                                window.location.reload(true);
+                            }, 2000);
+                        });
+                    } else {
+                        attempt++;
+                    }
+                })
+                .catch(error => {
+                    // Normal during PM2/Nginx restarts when gateway drops
+                    attempt++;
+                });
+        }
+
+        // Start polling after 5 seconds to give deployment script time to begin actual restarts
+        setTimeout(() => {
+            pollInterval = setInterval(checkHealth, 10000);
+            checkHealth();
+        }, 5000);
+    </script>
+</body>
+</html>

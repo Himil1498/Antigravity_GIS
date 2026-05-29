@@ -1,0 +1,234 @@
+.sec-settings-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.sec-settings-icon-wrapper {
+  width: 3rem;
+  height: 3rem;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sec-settings-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: #2563eb;
+}
+
+.sec-settings-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  margin: 0;
+}
+
+.sec-settings-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-muted, #6b7280);
+  margin: 0;
+}
+
+/* Alert Messages */
+.sec-alert {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.sec-alert-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.sec-alert-success {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.sec-alert-success .sec-alert-icon { color: #10b981; }
+.sec-alert-success p { color: #047857; font-size: 0.875rem; margin: 0; }
+
+.sec-alert-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.sec-alert-error .sec-alert-icon { color: #ef4444; }
+.sec-alert-error p { color: #b91c1c; font-size: 0.875rem; margin: 0; }
+
+/* Status Card */
+.sec-status-card {
+  border: 2px solid;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.sec-status-enabled {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.sec-status-disabled {
+  border-color: rgba(156, 163, 175, 0.3);
+  background: rgba(243, 244, 246, 0.5);
+}
+
+.sec-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sec-status-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sec-status-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 9999px;
+}
+
+.sec-status-dot.enabled { background: #10b981; }
+.sec-status-dot.disabled { background: #9ca3af; }
+
+.sec-status-text {
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  margin: 0;
+}
+
+.sec-status-date {
+  font-size: 0.875rem;
+  color: var(--text-muted, #6b7280);
+  margin: 0;
+}
+
+.sec-method-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.sec-method-badge.enabled {
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+}
+
+.sec-method-badge.disabled {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+/* How It Works */
+.sec-how-works {
+  margin-bottom: 1.5rem;
+}
+
+.sec-how-works-title {
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  margin-bottom: 0.5rem;
+}
+
+.sec-how-works-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sec-how-works-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #374151);
+}
+
+.sec-how-works-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #3b82f6;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+/* Action Button */
+.sec-action-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  color: #fff;
+}
+
+.sec-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sec-btn-enable {
+  background: #2563eb;
+}
+
+.sec-btn-enable:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.sec-btn-disable {
+  background: #dc2626;
+}
+
+.sec-btn-disable:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+/* Dark Mode Overrides */
+@media (prefers-color-scheme: dark) {
+  .sec-settings-icon-wrapper { background: rgba(59, 130, 246, 0.2); }
+  .sec-settings-icon { color: #60a5fa; }
+  .sec-settings-title { color: #f9fafb; }
+  
+  .sec-alert-success { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); }
+  .sec-alert-success .sec-alert-icon { color: #34d399; }
+  .sec-alert-success p { color: #6ee7b7; }
+  
+  .sec-alert-error { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); }
+  .sec-alert-error .sec-alert-icon { color: #f87171; }
+  .sec-alert-error p { color: #fca5a5; }
+
+  .sec-status-disabled { background: rgba(55, 65, 81, 0.5); border-color: rgba(75, 85, 99, 0.5); }
+  .sec-status-enabled { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.4); }
+  .sec-status-text { color: #f9fafb; }
+  .sec-method-badge.enabled { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+  .sec-method-badge.disabled { background: #4b5563; color: #e5e7eb; }
+  
+  .sec-how-works-title { color: #f9fafb; }
+  .sec-how-works-item { color: #d1d5db; }
+  .sec-how-works-icon { color: #60a5fa; }
+}

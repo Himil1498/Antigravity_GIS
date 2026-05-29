@@ -1,0 +1,945 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   OptiConnect GIS — Service Portal Login (Vanilla CSS)
+   Replicates the enterprise Service Portal aesthetic.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap");
+
+/* ── Design Tokens ── */
+.sp-login-root {
+  --sp-navy: #0b1d3a;
+  --sp-navy-mid: #122950;
+  --sp-navy-light: #1a3a6b;
+  --sp-blue: #1e6fd9;
+  --sp-blue-light: #3d8ef0;
+  --sp-blue-pale: #d6e8ff;
+  --sp-teal: #0ea5a0;
+  --sp-teal-light: #cffaf4;
+  --sp-amber: #f59e0b;
+  --sp-amber-pale: #fef3c7;
+  --sp-green: #10b981;
+  --sp-green-pale: #d1fae5;
+  --sp-white: #ffffff;
+  --sp-surface: #f0f5ff;
+  --sp-card-bg: #ffffff;
+  --sp-text-main: #0b1d3a;
+  --sp-text-mid: #3d5a8a;
+  --sp-text-soft: #6b84ad;
+  --sp-border: #c8d8f0;
+  --sp-border-light: #e2ecff;
+  --sp-font: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --sp-font-mono: "DM Mono", monospace;
+  --sp-radius-sm: 6px;
+  --sp-radius-md: 10px;
+  --sp-radius-lg: 16px;
+  --sp-transition: 0.18s ease;
+
+  font-family: var(--sp-font);
+  background: var(--sp-surface);
+  color: var(--sp-text-main);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Top Bar ── */
+.sp-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2.5rem;
+  height: 56px;
+  background: var(--sp-navy);
+  border-bottom: 1px solid var(--sp-navy-light);
+  flex-shrink: 0;
+}
+
+.sp-topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.sp-topbar-logo-wrap {
+  width: 120px;
+  height: 36px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.sp-topbar-logo {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+  transform: scale(3.2);
+  transform-origin: left center;
+  filter: brightness(0) invert(1);
+}
+
+.sp-topbar-right {
+  font-size: 13px;
+  color: var(--sp-text-soft);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sp-topbar-link {
+  background: none;
+  border: none;
+  color: var(--sp-blue-light);
+  text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--sp-font);
+  font-size: 13px;
+  padding: 0;
+}
+
+.sp-topbar-link:hover {
+  text-decoration: underline;
+}
+
+/* ── Announcement Banner ── */
+.sp-announcement-banner {
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+/* ── Main Layout ── */
+.sp-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1.5rem;
+  overflow: hidden;
+  position: relative;
+  background:
+    radial-gradient(
+      ellipse 60% 50% at 0% 60%,
+      rgba(30, 111, 217, 0.08) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 40% 40% at 100% 20%,
+      rgba(14, 165, 160, 0.07) 0%,
+      transparent 60%
+    ),
+    var(--sp-surface);
+}
+
+/* ── Wavy Background Floating Lights ── */
+.sp-wavy-light {
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.18;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.sp-wavy-light--cyan {
+  background: #00d9ff;
+  top: -120px;
+  left: -80px;
+  animation: sp-light-float1 12s infinite alternate ease-in-out;
+}
+
+.sp-wavy-light--violet {
+  background: #7c3aed;
+  bottom: -160px;
+  right: -80px;
+  animation: sp-light-float2 14s infinite alternate ease-in-out;
+}
+
+@keyframes sp-light-float1 {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(80px, 50px);
+  }
+}
+
+@keyframes sp-light-float2 {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(-100px, -40px);
+  }
+}
+
+.sp-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 3.5rem;
+  max-width: 900px;
+  width: 100%;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Left Panel ── */
+.sp-panel-left {
+  padding-right: 1rem;
+}
+
+.sp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--sp-green-pale);
+  color: #065f46;
+  font-family: var(--sp-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid #6ee7b7;
+  margin-bottom: 1rem;
+  letter-spacing: 0.3px;
+}
+
+.sp-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sp-green);
+  animation: sp-pulse 2s ease-in-out infinite;
+}
+
+@keyframes sp-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.sp-panel-left h2 {
+  font-size: 26px;
+  font-weight: 300;
+  color: var(--sp-text-main);
+  line-height: 1.25;
+  letter-spacing: -0.5px;
+  margin-bottom: 0.75rem;
+}
+
+.sp-panel-left h2 strong {
+  font-weight: 500;
+  color: var(--sp-blue);
+}
+
+.sp-panel-left > p {
+  font-size: 13px;
+  color: var(--sp-text-soft);
+  line-height: 1.65;
+  margin-bottom: 1.25rem;
+}
+
+/* ── Feature Items ── */
+.sp-features {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sp-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.sp-feature-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--sp-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.sp-fi-lock {
+  background: var(--sp-blue-pale);
+}
+.sp-fi-clock {
+  background: var(--sp-amber-pale);
+}
+.sp-fi-check {
+  background: var(--sp-teal-light);
+}
+.sp-fi-workflow {
+  background: #ede9fe;
+}
+
+.sp-feature-text strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sp-text-main);
+  margin-bottom: 2px;
+}
+
+.sp-feature-text span {
+  font-size: 12px;
+  color: var(--sp-text-soft);
+}
+
+/* ── Platform Metrics Strip ── */
+/* ── Platform Metrics Strip ── */
+.sp-metrics-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-top: 1.4rem;
+  padding: 14px 22px;
+
+  background: rgba(255, 255, 255, 0.42);
+
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  border: 1px solid rgba(255, 255, 255, 0.28);
+
+  box-shadow:
+    0 10px 30px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+
+  border-radius: 20px;
+
+  overflow: hidden;
+}
+
+/* Each Metric */
+.sp-metric {
+  flex: 1;
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+
+  padding: 0 10px;
+}
+
+/* Top Text */
+.sp-metric-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0b1d3a;
+
+  line-height: 1.2;
+
+  white-space: nowrap;
+}
+
+/* Bottom Label */
+.sp-metric-label {
+  margin-top: 4px;
+
+  font-family: var(--sp-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+
+  color: #1e6fd9;
+
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+
+  white-space: nowrap;
+}
+
+/* Divider */
+.sp-metric-divider {
+  width: 1px;
+  height: 34px;
+
+  flex-shrink: 0;
+
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(30, 111, 217, 0.22),
+    transparent
+  );
+}
+
+/* Hover */
+.sp-metrics-strip:hover {
+  background: rgba(255, 255, 255, 0.5);
+
+  box-shadow:
+    0 14px 38px rgba(15, 23, 42, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+/* ── Login Card ── */
+.sp-card {
+  background: var(--sp-white);
+  border: 1px solid var(--sp-border-light);
+  border-radius: var(--sp-radius-lg);
+  padding: 1.75rem 1.75rem;
+  /* Premium 3D Shadow Stack */
+  box-shadow:
+    0 10px 30px rgba(11, 29, 58, 0.05),
+    0 20px 60px rgba(11, 29, 58, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+
+  /* 3D Transform Prep */
+  transform: perspective(1000px) rotateX(0deg) rotateY(0deg);
+  transition:
+    transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    box-shadow 0.4s ease;
+  position: relative;
+  z-index: 10;
+}
+
+.sp-card:hover {
+  transform: perspective(1000px) translateY(-5px) rotateX(1deg);
+  box-shadow:
+    0 20px 40px rgba(11, 29, 58, 0.08),
+    0 30px 80px rgba(11, 29, 58, 0.12);
+}
+
+.sp-card-header {
+  margin-bottom: 1.25rem;
+}
+
+.sp-card-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.sp-card-eyebrow-line {
+  width: 24px;
+  height: 2px;
+  background: var(--sp-blue);
+  border-radius: 2px;
+}
+
+.sp-card-eyebrow-text {
+  font-family: var(--sp-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--sp-blue);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.sp-card-title-bold {
+  font-size: 26px !important;
+  font-weight: 800 !important;
+  color: #004690 !important; /* Rich Vibrant Blue */
+  letter-spacing: -0.5px !important;
+  margin-bottom: 4px !important;
+  text-transform: none !important;
+}
+
+.sp-field-error {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  animation: sp-slide-down 0.2s ease-out;
+}
+
+.sp-field-error svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+@keyframes sp-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sp-card-subtitle {
+  font-size: 13px;
+  color: var(--sp-text-soft);
+}
+
+/* ── Form Fields ── */
+.sp-field {
+  margin-bottom: 1.1rem;
+}
+
+.sp-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sp-blue); /* Changed from sp-text-mid to blue */
+  margin-bottom: 6px;
+}
+
+.sp-input-wrap {
+  position: relative;
+}
+
+.sp-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 40px 0 12px;
+  border: 1px solid var(--sp-border);
+  border-radius: var(--sp-radius-md);
+  background: var(--sp-surface);
+  color: var(--sp-text-main);
+  font-family: var(--sp-font-mono);
+  font-size: 14px;
+  outline: none;
+  transition:
+    border-color var(--sp-transition),
+    box-shadow var(--sp-transition),
+    background var(--sp-transition);
+}
+
+.sp-input:hover {
+  border-color: var(--sp-blue-light);
+}
+
+.sp-input:focus {
+  border-color: var(--sp-blue);
+  background: var(--sp-white);
+  box-shadow: 0 0 0 3px var(--sp-blue-pale);
+}
+
+.sp-input::placeholder {
+  color: var(--sp-border);
+}
+
+.sp-input-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--sp-blue); /* Changed from sp-text-soft to blue */
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.sp-toggle-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #8b5cf6; /* Violet color */
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: color var(--sp-transition);
+}
+
+.sp-toggle-btn:hover {
+  color: var(--sp-blue);
+}
+
+/* ── Form Row (Remember + Forgot) ── */
+.sp-form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.sp-check-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--sp-text-soft);
+  cursor: pointer;
+}
+
+.sp-check-label input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--sp-blue);
+  cursor: pointer;
+}
+
+.sp-forgot {
+  font-size: 13px;
+  color: var(--sp-blue);
+  background: none;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--sp-font);
+  padding: 0;
+}
+
+.sp-forgot:hover {
+  text-decoration: underline;
+}
+
+/* ── Submit Button ── */
+.sp-btn-primary {
+  width: 100%;
+  height: 44px;
+  background: var(--sp-blue);
+  color: var(--sp-white);
+  border: none;
+  border-radius: var(--sp-radius-md);
+  font-family: var(--sp-font);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 0.1px;
+  transition:
+    background var(--sp-transition),
+    transform 0.1s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.sp-btn-primary:hover {
+  background: var(--sp-navy-light);
+}
+
+.sp-btn-primary:active {
+  transform: scale(0.99);
+}
+
+.sp-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sp-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: sp-spin 0.7s linear infinite;
+}
+
+@keyframes sp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Card Footer (Security Badge) ── */
+.sp-card-footer {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--sp-border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.sp-secure-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--sp-green);
+}
+
+.sp-card-footer span {
+  font-size: 12px;
+  color: var(--sp-text-soft);
+}
+
+/* ── Error Box ── */
+.sp-error-box {
+  margin-bottom: 1.1rem;
+  padding: 10px 14px;
+  border-radius: var(--sp-radius-md);
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  animation: sp-shake 0.4s ease;
+}
+
+.sp-error-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #dc2626;
+}
+
+.sp-error-text strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #991b1b;
+  margin-bottom: 2px;
+}
+
+.sp-error-text span {
+  font-size: 12px;
+  color: #b91c1c;
+}
+
+@keyframes sp-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-2px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+/* ── Bottom Bar ── */
+.sp-bottombar {
+  padding: 1rem 2.5rem;
+  border-top: 1px solid var(--sp-navy-light);
+  background: var(--sp-navy);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.sp-bottombar p {
+  font-size: 12px;
+  color: var(--sp-text-soft);
+  margin: 0;
+}
+
+.sp-bottombar-meta {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 12px;
+  color: var(--sp-text-soft);
+}
+
+/* ── Responsive ── */
+@media (max-width: 700px) {
+  .sp-wrapper {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .sp-panel-left {
+    display: none;
+  }
+  .sp-topbar {
+    padding: 0 1.25rem;
+  }
+  .sp-main {
+    padding: 2rem 1.25rem;
+  }
+  .sp-bottombar {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Dark Mode Immunity
+   The Login Page maintains a fixed branded aesthetic regardless of dark mode.
+   This overrides the global dark input styles from App.css.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Force light background and surface colors even in dark mode */
+.dark .sp-login-root {
+  background: var(--sp-surface);
+  color: var(--sp-text-main);
+  color-scheme: light;
+}
+
+.dark .sp-login-root .sp-main {
+  background:
+    radial-gradient(
+      ellipse 60% 50% at 0% 60%,
+      rgba(30, 111, 217, 0.08) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 40% 40% at 100% 20%,
+      rgba(14, 165, 160, 0.07) 0%,
+      transparent 60%
+    ),
+    var(--sp-surface);
+}
+
+/* Card stays white */
+.dark .sp-login-root .sp-card {
+  background: var(--sp-white);
+  border-color: var(--sp-border-light);
+}
+
+/* Input fields stay light */
+.dark .sp-login-root .sp-input {
+  background: var(--sp-surface) !important;
+  color: var(--sp-text-main) !important;
+  border-color: var(--sp-border) !important;
+}
+
+.dark .sp-login-root .sp-input:focus {
+  background: var(--sp-white) !important;
+  border-color: var(--sp-blue) !important;
+  box-shadow: 0 0 0 3px var(--sp-blue-pale) !important;
+}
+
+.dark .sp-login-root .sp-input::placeholder {
+  color: var(--sp-border) !important;
+}
+
+/* Labels stay branded blue */
+.dark .sp-login-root .sp-field label {
+  color: var(--sp-blue);
+}
+
+/* Card title, subtitle, eyebrow retain light palette */
+.dark .sp-login-root .sp-card-title-bold {
+  color: #004690 !important;
+}
+
+.dark .sp-login-root .sp-card-subtitle {
+  color: var(--sp-text-soft);
+}
+
+.dark .sp-login-root .sp-card-eyebrow-text {
+  color: var(--sp-blue);
+}
+
+.dark .sp-login-root .sp-card-eyebrow-line {
+  background: var(--sp-blue);
+}
+
+/* Icons stay themed */
+.dark .sp-login-root .sp-input-icon {
+  color: var(--sp-blue);
+}
+
+.dark .sp-login-root .sp-toggle-btn {
+  color: #8b5cf6;
+}
+
+/* Form row elements stay light */
+.dark .sp-login-root .sp-check-label {
+  color: var(--sp-text-soft);
+}
+
+.dark .sp-login-root .sp-check-label input[type="checkbox"] {
+  accent-color: var(--sp-blue);
+}
+
+.dark .sp-login-root .sp-forgot {
+  color: var(--sp-blue);
+}
+
+/* Submit button stays branded */
+.dark .sp-login-root .sp-btn-primary {
+  background: var(--sp-blue);
+  color: var(--sp-white);
+}
+
+.dark .sp-login-root .sp-btn-primary:hover {
+  background: var(--sp-navy-light);
+}
+
+/* Card footer stays light */
+.dark .sp-login-root .sp-card-footer span {
+  color: var(--sp-text-soft);
+}
+
+.dark .sp-login-root .sp-secure-dot {
+  background: var(--sp-green);
+}
+
+/* Left panel text stays light */
+.dark .sp-login-root .sp-panel-left h2 {
+  color: var(--sp-text-main);
+}
+
+.dark .sp-login-root .sp-panel-left h2 strong {
+  color: var(--sp-blue);
+}
+
+.dark .sp-login-root .sp-panel-left > p {
+  color: var(--sp-text-soft);
+}
+
+.dark .sp-login-root .sp-feature-text strong {
+  color: var(--sp-text-main);
+}
+
+.dark .sp-login-root .sp-feature-text span {
+  color: var(--sp-text-soft);
+}
+
+/* Metrics strip stays white */
+.dark .sp-login-root .sp-metrics-strip {
+  background: var(--sp-white);
+  border-color: var(--sp-border-light);
+}
+
+.dark .sp-login-root .sp-metric-value {
+  color: var(--sp-text-main);
+}
+
+.dark .sp-login-root .sp-metric-label {
+  color: var(--sp-blue);
+}
+
+.dark .sp-login-root .sp-metric-divider {
+  background: var(--sp-border-light);
+}
+
+/* Badge stays green */
+.dark .sp-login-root .sp-badge {
+  background: var(--sp-green-pale);
+  color: #065f46;
+  border-color: #6ee7b7;
+}

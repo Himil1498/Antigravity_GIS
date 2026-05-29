@@ -1,0 +1,21 @@
+{
+  "short_name": "OptiConnect GIS",
+  "name": "OptiConnect - GIS Platform",
+  "icons": [
+    {
+      "src": "FavIcon_logo1.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "Logos/Transparent/logo1.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}
