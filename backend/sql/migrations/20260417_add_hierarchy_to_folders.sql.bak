@@ -1,0 +1,9 @@
+-- Migration: Add Hierarchy to Folders
+-- ---------------------------------
+
+-- 1. Add parent_id column for nested folders
+ALTER TABLE dark_fiber_folders 
+ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES dark_fiber_folders(id) ON DELETE CASCADE;
+
+-- 2. Add index for performance on parent filtering
+CREATE INDEX IF NOT EXISTS idx_dark_fiber_folders_parent_id ON dark_fiber_folders(parent_id);

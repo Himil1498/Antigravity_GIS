@@ -1,0 +1,26 @@
+-- Migration: Add Folders and Recycle Bin to Dark Fiber
+-- Description: Adds city-wise folder support and soft-delete capabilities.
+
+-- 1. Create folders table
+CREATE TABLE IF NOT EXISTS dark_fiber_folders (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    deleted_at TIMESTAMP
+);
+
+-- 2. Add soft delete and folder association to imports
+ALTER TABLE dark_fiber_imports 
+ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP,
+ADD COLUMN IF NOT EXISTS folder_id INT REFERENCES dark_fiber_folders(id) ON DELETE SET NULL;
+
+-- 3. Create a 'General' folder if none exists and move all existing data there
+INSERT INTO dark_fiber_folders (name) 
+SELECT 'General' 
+WHERE NOT EXISTS (SELECT 1 FROM dark_fiber_folders WHERE name = 'General');
+
+UPDATE dark_fiber_imports 
+SET folder_id = (SELECT id FROM dark_fiber_folders WHERE name = 'General' LIMIT 1)
+WHERE folder_id IS NULL;

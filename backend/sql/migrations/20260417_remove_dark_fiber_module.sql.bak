@@ -1,0 +1,56 @@
+-- Migration: Remove Dark Fiber Module
+-- Date: 2026-04-17
+-- Description: Drops all dark_fiber_* tables, indexes, and cleans up related permissions.
+-- This migration is IRREVERSIBLE. All dark fiber data will be permanently deleted.
+
+BEGIN;
+
+-- =============================================================================
+-- 1. Drop Tables (in dependency-safe order: children first, parent last)
+-- =============================================================================
+
+-- 1a. dark_fiber_imports (depends on dark_fiber_networks)
+DROP TABLE IF EXISTS dark_fiber_imports CASCADE;
+
+-- 1b. dark_fiber_customers (depends on dark_fiber_customer_rings, dark_fiber_networks)
+DROP TABLE IF EXISTS dark_fiber_customers CASCADE;
+
+-- 1c. dark_fiber_customer_rings (depends on dark_fiber_networks)
+DROP TABLE IF EXISTS dark_fiber_customer_rings CASCADE;
+
+-- 1d. dark_fiber_routes (depends on dark_fiber_networks, dark_fiber_pops)
+DROP TABLE IF EXISTS dark_fiber_routes CASCADE;
+
+-- 1e. dark_fiber_pops (depends on dark_fiber_networks)
+DROP TABLE IF EXISTS dark_fiber_pops CASCADE;
+
+-- 1f. dark_fiber_networks (root table — no dependencies)
+-- 1. Drop Dark Fiber associated tables
+-- =============================================================================
+
+DROP TABLE IF EXISTS dark_fiber_networks CASCADE;
+DROP TABLE IF EXISTS dark_fiber_pops CASCADE;
+DROP TABLE IF EXISTS dark_fiber_routes CASCADE;
+DROP TABLE IF EXISTS dark_fiber_customer_rings CASCADE;
+DROP TABLE IF EXISTS dark_fiber_customers CASCADE;
+DROP TABLE IF EXISTS dark_fiber_imports CASCADE;
+
+-- =============================================================================
+-- 2. Clean up specific permissions from the system
+-- =============================================================================
+-- Note: 'role_permissions' does not exist in this schema; roles use a JSONB field.
+-- Since our audit shows no darkfiber permissions currently in roles, we skip JSON cleaning for now.
+
+DELETE FROM user_permissions WHERE permission_id LIKE 'darkfiber:%';
+DELETE FROM group_permissions WHERE permission_id LIKE 'darkfiber:%';
+DELETE FROM system_permissions WHERE code LIKE 'darkfiber:%' OR category = 'darkfiber';
+
+-- =============================================================================
+-- 3. Remove orphaned indexes (if any remain after cascade)
+-- =============================================================================
+
+DROP INDEX IF EXISTS idx_dark_fiber_routes_geom;
+DROP INDEX IF EXISTS idx_dark_fiber_pops_geom;
+DROP INDEX IF EXISTS idx_dark_fiber_customers_geom;
+
+COMMIT;

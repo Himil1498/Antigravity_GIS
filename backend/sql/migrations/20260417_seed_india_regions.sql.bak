@@ -1,0 +1,31 @@
+-- Seeding 36 Regions of India (States & UTs)
+-- ---------------------------------------------------
+
+-- 1. Insert 36 Regions (Safely checking for existence)
+INSERT INTO dark_fiber_folders (name) 
+SELECT n FROM (VALUES 
+('Andhra Pradesh'), ('Arunachal Pradesh'), ('Assam'), ('Bihar'), ('Chhattisgarh'), 
+('Goa'), ('Gujarat'), ('Haryana'), ('Himachal Pradesh'), ('Jharkhand'), 
+('Karnataka'), ('Kerala'), ('Madhya Pradesh'), ('Maharashtra'), ('Manipur'), 
+('Meghalaya'), ('Mizoram'), ('Nagaland'), ('Odisha'), ('Punjab'), 
+('Rajasthan'), ('Sikkim'), ('Tamil Nadu'), ('Telangana'), ('Tripura'), 
+('Uttar Pradesh'), ('Uttarakhand'), ('West Bengal'),
+('Andaman and Nicobar Islands'), ('Chandigarh'), ('Dadra and Nagar Haveli and Daman and Diu'), 
+('Delhi'), ('Jammu and Kashmir'), ('Ladakh'), ('Lakshadweep'), ('Puducherry')
+) AS t(n)
+WHERE NOT EXISTS (SELECT 1 FROM dark_fiber_folders WHERE name = t.n);
+
+-- 2. Migrate data from 'General' to 'Delhi' (Default Region) before deleting
+DO $$
+DECLARE
+    gen_id INTEGER;
+    delhi_id INTEGER;
+BEGIN
+    SELECT id INTO gen_id FROM dark_fiber_folders WHERE name = 'General' LIMIT 1;
+    SELECT id INTO delhi_id FROM dark_fiber_folders WHERE name = 'Delhi' LIMIT 1;
+    
+    IF gen_id IS NOT NULL AND delhi_id IS NOT NULL THEN
+        UPDATE dark_fiber_imports SET folder_id = delhi_id WHERE folder_id = gen_id;
+        DELETE FROM dark_fiber_folders WHERE id = gen_id;
+    END IF;
+END $$;

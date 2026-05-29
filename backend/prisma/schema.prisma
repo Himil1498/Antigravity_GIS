@@ -1,0 +1,945 @@
+generator client {
+  provider        = "prisma-client-js"
+  engineType      = "library"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["partialIndexes", "driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model analytics_events {
+  id         Int       @id @default(autoincrement())
+  user_id    Int?
+  event_type String    @db.VarChar(100)
+  event_data Json?
+  session_id String?   @db.VarChar(255)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model api_performance_logs {
+  id          Int       @id @default(autoincrement())
+  endpoint    String    @db.VarChar(500)
+  method      String    @db.VarChar(10)
+  latency_ms  Int
+  status_code Int
+  user_id     Int?
+  timestamp   DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([endpoint], map: "idx_api_perf_endpoint")
+  @@index([status_code], map: "idx_api_perf_status")
+}
+
+model audit_logs {
+  id            Int       @id @default(autoincrement())
+  user_id       Int?
+  action        String    @db.VarChar(100)
+  resource_type String?   @db.VarChar(100)
+  resource_id   String?   @db.VarChar(255)
+  details       Json?
+  ip_address    String?   @db.VarChar(45)
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+  session_id    String?   @db.VarChar(255)
+  user_agent    String?
+  status        String?   @default("SUCCESS") @db.VarChar(50)
+
+  @@index([user_id, created_at(sort: Desc)], map: "idx_audit_logs_user")
+}
+
+model bookmarks {
+  id          Int       @id @default(autoincrement())
+  user_id     Int
+  name        String    @db.VarChar(255)
+  latitude    Decimal   @db.Decimal
+  longitude   Decimal   @db.Decimal
+  zoom_level  Int?      @default(10)
+  map_type    String?   @default("roadmap") @db.VarChar(50)
+  description String?
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model boundary_change_history {
+  id               Int       @id @default(autoincrement())
+  region_id        Int
+  boundary_id      Int
+  old_boundary     Json?
+  new_boundary     Json?
+  old_version      Int?
+  new_version      Int
+  change_type      String    @db.VarChar(50)
+  change_reason    String?
+  vertices_added   Int?      @default(0)
+  vertices_removed Int?      @default(0)
+  vertices_moved   Int?      @default(0)
+  changed_by       Int
+  ip_address       String?   @db.VarChar(45)
+  user_agent       String?
+  created_at       DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model boundary_versions {
+  id               Int       @id @default(autoincrement())
+  region_id        Int
+  boundary_geojson Json
+  boundary_type    String?   @default("Polygon") @db.VarChar(50)
+  vertex_count     Int
+  area_sqkm        Decimal?  @db.Decimal
+  version_number   Int       @default(1)
+  status           String?   @default("draft") @db.VarChar(50)
+  created_by       Int
+  created_at       DateTime? @default(now()) @db.Timestamp(6)
+  published_by     Int?
+  published_at     DateTime? @db.Timestamp(6)
+  notes            String?
+  change_reason    String?
+  source           String?   @default("manual") @db.VarChar(100)
+  impact_summary   Json?
+}
+
+model building_cache {
+  id                    Int       @id @default(autoincrement())
+  cache_key             String    @db.VarChar(255)
+  bbox_south            Float?
+  bbox_north            Float?
+  bbox_west             Float?
+  bbox_east             Float?
+  building_data         Json?
+  obstacle_data         Json?
+  building_count        Int?
+  buildings_with_height Int?
+  confidence_score      Float?
+  access_count          Int?      @default(0)
+  last_accessed         DateTime? @default(now()) @db.Timestamp(6)
+  created_at            DateTime? @default(now()) @db.Timestamp(6)
+  expires_at            DateTime? @db.Timestamp(6)
+}
+
+model dark_fiber_folders {
+  id                       Int                  @id @default(autoincrement())
+  name                     String               @db.VarChar(255)
+  parent_id                Int?
+  created_at               DateTime?            @default(now()) @db.Timestamp(6)
+  updated_at               DateTime?            @default(now()) @db.Timestamp(6)
+  is_deleted               Boolean?             @default(false)
+  deleted_at               DateTime?            @db.Timestamp(6)
+  dark_fiber_folders       dark_fiber_folders?  @relation("dark_fiber_foldersTodark_fiber_folders", fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  other_dark_fiber_folders dark_fiber_folders[] @relation("dark_fiber_foldersTodark_fiber_folders")
+  dark_fiber_imports       dark_fiber_imports[]
+}
+
+model dark_fiber_imports {
+  id                 Int                 @id @default(autoincrement())
+  filename           String              @db.VarChar(255)
+  upload_date        DateTime?           @default(now()) @db.Timestamp(6)
+  imported_by        String?             @db.VarChar(100)
+  status             String?             @default("SUCCESS") @db.VarChar(50)
+  details            Json?
+  is_deleted         Boolean?            @default(false)
+  deleted_at         DateTime?           @db.Timestamp(6)
+  folder_id          Int?
+  dark_fiber_folders dark_fiber_folders? @relation(fields: [folder_id], references: [id], onUpdate: NoAction)
+  dark_fiber_nodes   dark_fiber_nodes[]
+  dark_fiber_routes  dark_fiber_routes[]
+}
+
+model dark_fiber_nodes {
+  id                 Int                      @id @default(autoincrement())
+  import_id          Int?
+  name               String?                  @db.VarChar(255)
+  type               String?                  @db.VarChar(100)
+  geom               Unsupported("geometry")?
+  properties         Json?
+  created_at         DateTime?                @default(now()) @db.Timestamp(6)
+  dark_fiber_imports dark_fiber_imports?      @relation(fields: [import_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([geom], map: "idx_df_nodes_geom", type: Gist)
+  @@index([import_id], map: "idx_df_nodes_import_id")
+}
+
+model dark_fiber_routes {
+  id                 Int                      @id @default(autoincrement())
+  import_id          Int?
+  name               String?                  @db.VarChar(255)
+  geom               Unsupported("geometry")?
+  properties         Json?
+  created_at         DateTime?                @default(now()) @db.Timestamp(6)
+  dark_fiber_imports dark_fiber_imports?      @relation(fields: [import_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([geom], map: "idx_df_routes_geom", type: Gist)
+  @@index([import_id], map: "idx_df_routes_import_id")
+}
+
+model data_hub_exports {
+  id               Int       @id @default(autoincrement())
+  user_id          Int?
+  region_id        Int?
+  export_type      String?   @db.VarChar(50)
+  export_scope     String?   @db.VarChar(50)
+  file_name        String?   @db.VarChar(255)
+  file_url         String?
+  export_status    String?   @default("pending") @db.VarChar(50)
+  export_settings  Json?
+  records_exported Int?      @default(0)
+  created_at       DateTime? @default(now()) @db.Timestamp(6)
+  completed_at     DateTime? @db.Timestamp(6)
+  end_time         DateTime? @db.Timestamp(6)
+  expires_at       DateTime? @db.Timestamp(6)
+}
+
+model db_backups {
+  id          Int       @id @default(autoincrement())
+  file_name   String    @db.VarChar(255)
+  size_bytes  BigInt?
+  backup_path String?
+  created_by  Int?
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  status      String?   @default("completed") @db.VarChar(50)
+}
+
+model dev_backups {
+  id           Int       @id @default(autoincrement())
+  filename     String    @db.VarChar(255)
+  filepath     String?   @db.VarChar(500)
+  size_bytes   BigInt
+  backup_type  String?   @default("full") @db.VarChar(50)
+  tables_count Int?      @default(0)
+  include_data Int?      @default(1)
+  description  String?
+  created_by   Int
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+  restored_by  Int?
+  restored_at  DateTime? @db.Timestamp(6)
+}
+
+model dev_env_validations {
+  id             Int       @id @default(autoincrement())
+  environment    String    @db.VarChar(50)
+  overall_status String?   @default("healthy") @db.VarChar(50)
+  passed_checks  Int?      @default(0)
+  warning_count  Int?      @default(0)
+  error_count    Int?      @default(0)
+  results        String?
+  created_by     Int
+  created_at     DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model dev_error_logs {
+  id            Int       @id @default(autoincrement())
+  error_type    String?   @db.VarChar(100)
+  error_message String?
+  stack_trace   String?
+  user_id       Int?
+  request_url   String?   @db.VarChar(500)
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model dev_security_scans {
+  id                    Int       @id @default(autoincrement())
+  scan_type             String?   @default("full") @db.VarChar(50)
+  risk_score            Int?      @default(0)
+  risk_level            String?   @default("low") @db.VarChar(50)
+  vulnerabilities_count Int?      @default(0)
+  warnings_count        Int?      @default(0)
+  results               String?
+  scan_duration_ms      Int?
+  created_by            Int
+  created_at            DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model dev_tool_alerts {
+  id                   Int       @id @default(autoincrement())
+  alert_type           String    @db.VarChar(50)
+  threshold_value      Decimal?  @db.Decimal
+  notification_channel String    @db.VarChar(50)
+  is_enabled           Int?      @default(1)
+  created_by           Int
+  created_at           DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model dev_tool_database_backups {
+  id            Int       @id @default(autoincrement())
+  backup_type   String    @db.VarChar(50)
+  file_path     String?   @db.VarChar(500)
+  file_size_mb  Decimal?  @db.Decimal
+  backup_status String?   @default("in_progress") @db.VarChar(50)
+  created_by    Int
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+  restored_at   DateTime? @db.Timestamp(6)
+}
+
+model dev_tool_error_logs {
+  id               Int       @id @default(autoincrement())
+  error_type       String    @db.VarChar(50)
+  error_message    String?
+  stack_trace      String?
+  user_id          Int?
+  request_url      String?   @db.VarChar(500)
+  occurrence_count Int?      @default(1)
+  first_seen       DateTime? @default(now()) @db.Timestamp(6)
+  last_seen        DateTime? @default(now()) @db.Timestamp(6)
+  resolved_at      DateTime? @db.Timestamp(6)
+}
+
+model dev_tool_performance_profiles {
+  id           Int       @id @default(autoincrement())
+  profile_type String    @db.VarChar(50)
+  metrics      Json?
+  bottlenecks  Json?
+  started_by   Int
+  started_at   DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model dev_tool_reports {
+  id                    Int       @id @default(autoincrement())
+  report_type           String    @db.VarChar(50)
+  status                String?   @default("pending") @db.VarChar(50)
+  started_by            Int
+  started_at            DateTime? @default(now()) @db.Timestamp(6)
+  completed_at          DateTime? @db.Timestamp(6)
+  duration_seconds      Int?
+  total_files           Int?
+  total_lines           Int?
+  unused_files          Int?
+  high_complexity_files Int?
+  report_data_json      String?
+  report_html_path      String?   @db.VarChar(500)
+  report_json_path      String?   @db.VarChar(500)
+  error_message         String?
+  download_count        Int?      @default(0)
+  last_downloaded_at    DateTime? @db.Timestamp(6)
+}
+
+model dev_tool_security_scans {
+  id                    Int       @id @default(autoincrement())
+  scan_type             String    @db.VarChar(50)
+  vulnerabilities_count Int?      @default(0)
+  critical_count        Int?      @default(0)
+  high_count            Int?      @default(0)
+  medium_count          Int?      @default(0)
+  low_count             Int?      @default(0)
+  scan_results          Json?
+  started_by            Int
+  started_at            DateTime? @default(now()) @db.Timestamp(6)
+  completed_at          DateTime? @db.Timestamp(6)
+}
+
+model gis_features {
+  id           Int                      @id @default(autoincrement())
+  name         String?                  @db.VarChar(255)
+  description  String?
+  feature_type String?                  @db.VarChar(50)
+  geometry     Unsupported("geometry")?
+  latitude     Float?
+  longitude    Float?
+  properties   Json?
+  region_id    Int?
+  tags         Json?
+  created_by   Int?
+  created_at   DateTime?                @default(now()) @db.Timestamp(6)
+  updated_at   DateTime?                @db.Timestamp(6)
+}
+
+model group_members {
+  id       Int       @id @default(autoincrement())
+  group_id Int
+  user_id  Int
+  role     String?   @default("member") @db.VarChar(50)
+  added_by Int
+  added_at DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model group_permissions {
+  id            Int       @id @default(autoincrement())
+  group_id      Int
+  permission_id String    @db.VarChar(100)
+  granted_by    Int
+  granted_at    DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model group_regions {
+  id          Int       @id @default(autoincrement())
+  group_id    Int
+  region_id   Int
+  assigned_by Int
+  assigned_at DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model groups {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(255)
+  description String?
+  created_by  Int
+  is_active   Boolean?  @default(true)
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_at  DateTime? @default(now()) @db.Timestamp(6)
+  permissions Json?     @default("[]")
+}
+
+model infra_approvals {
+  id                                        Int              @id @default(autoincrement())
+  folder_id                                 Int?
+  submitted_by                              Int?
+  approved_by                               Int?
+  status                                    String           @default("pending_planned") @db.VarChar(20)
+  form_data                                 Json
+  circuit_id                                String?          @db.VarChar(100)
+  feature_id                                Int?
+  rejection_reason                          String?
+  created_at                                DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at                                DateTime?        @default(now()) @db.Timestamptz(6)
+  edited_by                                 Int?
+  edited_original_data                      Json?
+  users_infra_approvals_approved_byTousers  users?           @relation("infra_approvals_approved_byTousers", fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_infra_approvals_edited_byTousers    users?           @relation("infra_approvals_edited_byTousers", fields: [edited_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  network_folders                           network_folders? @relation(fields: [folder_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_infra_approvals_submitted_byTousers users?           @relation("infra_approvals_submitted_byTousers", fields: [submitted_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([folder_id], map: "idx_infra_approvals_folder_id")
+  @@index([status], map: "idx_infra_approvals_status")
+  @@index([submitted_by], map: "idx_infra_approvals_submitted_by")
+}
+
+model layer_management {
+  id          Int       @id @default(autoincrement())
+  user_id     Int
+  name        String?   @db.VarChar(255)
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  type        String?   @db.VarChar(50)
+  layer_data  Json?
+  is_visible  Int?      @default(1)
+  is_public   Boolean?  @default(false)
+  description String?
+  tags        Json?
+  region_id   Int?
+}
+
+model layers {
+  id           Int       @id @default(autoincrement())
+  user_id      Int
+  name         String    @db.VarChar(255)
+  type         String    @db.VarChar(100)
+  visibility   Int?      @default(1)
+  style_config Json?
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+  updated_at   DateTime? @default(now()) @db.Timestamp(6)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model marked_locations {
+  id               Int            @id @default(autoincrement())
+  name             String         @db.VarChar(255)
+  notes            String?
+  lat              Decimal        @db.Decimal(10, 8)
+  lng              Decimal        @db.Decimal(11, 8)
+  created_by       Int?
+  created_at       DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?      @default(now()) @db.Timestamptz(6)
+  feasibility_data Json?
+  is_feasibility   Boolean?       @default(false)
+  linked_file_id   Int?
+  remarks          String?
+  users            users?         @relation(fields: [created_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  network_files    network_files? @relation(fields: [linked_file_id], references: [id], onUpdate: NoAction)
+
+  @@index([created_by], map: "idx_marked_locations_created_by")
+  @@index([is_feasibility], map: "idx_marked_locations_feasibility", where: raw("(is_feasibility = true)"))
+}
+
+model mfa_tokens {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  token      String    @db.VarChar(10)
+  type       String?   @default("email") @db.VarChar(50)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  expires_at DateTime  @db.Timestamp(6)
+  attempts   Int?      @default(0)
+  is_used    Boolean?  @default(false)
+  used_at    DateTime? @db.Timestamptz(6)
+  ip_address String?   @db.VarChar(45)
+  user_agent String?
+}
+
+model network_features {
+  id                                       Int                      @id @default(autoincrement())
+  file_id                                  Int?
+  geom                                     Unsupported("geometry")?
+  properties                               Json?
+  created_at                               DateTime?                @default(now()) @db.Timestamp(6)
+  created_by                               Int?
+  updated_at                               DateTime?                @db.Timestamptz(6)
+  updated_by                               Int?
+  deleted_at                               DateTime?                @db.Timestamptz(6)
+  deleted_by                               Int?
+  users_network_features_created_byTousers users?                   @relation("network_features_created_byTousers", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_network_features_deleted_byTousers users?                   @relation("network_features_deleted_byTousers", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  network_files                            network_files?           @relation(fields: [file_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_network_features_updated_byTousers users?                   @relation("network_features_updated_byTousers", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([file_id, id], map: "idx_network_features_active_file", where: raw("(deleted_at IS NULL)"))
+  @@index([created_by, created_at], map: "idx_network_features_created_by")
+  @@index([deleted_at, deleted_by, created_by], map: "idx_network_features_deleted", where: raw("(deleted_at IS NOT NULL)"))
+  @@index([deleted_at], map: "idx_network_features_deleted_at")
+  @@index([deleted_by, deleted_at], map: "idx_network_features_deleted_by", where: raw("(deleted_at IS NOT NULL)"))
+  @@index([deleted_at], map: "idx_network_features_deleted_items", where: raw("(deleted_at IS NOT NULL)"))
+  @@index([file_id, deleted_at], map: "idx_network_features_file_deleted", where: raw("(deleted_at IS NULL)"))
+  @@index([file_id, geom], map: "idx_network_features_file_geom_active", where: raw("(deleted_at IS NULL)"))
+  @@index([file_id], map: "idx_network_features_file_id")
+  @@index([geom], map: "idx_network_features_geom", type: Gist)
+  @@index([geom], map: "idx_network_features_geom_3857", type: Gist, where: raw("(st_srid(geom) = ANY (ARRAY[0, 3857]))"))
+  @@index([geom], map: "idx_network_features_geom_4326", type: Gist, where: raw("(st_srid(geom) = 4326)"))
+  @@index([geom], map: "idx_network_features_geom_gist", type: Gist)
+  @@index([updated_by, updated_at], map: "idx_network_features_updated_by", where: raw("(updated_by IS NOT NULL)"))
+}
+
+model network_files {
+  id                                     Int                @id @default(autoincrement())
+  folder_id                              Int?
+  name                                   String             @db.VarChar(255)
+  file_type                              String             @db.VarChar(50)
+  storage_path                           String?            @db.VarChar(512)
+  size_bytes                             BigInt?
+  metadata                               Json?              @default("{}")
+  created_at                             DateTime?          @default(now()) @db.Timestamptz(6)
+  uploaded_by                            Int?
+  icon_type                              String?            @default("layer-group") @db.VarChar(50)
+  processing_status                      String?            @default("completed") @db.VarChar(20)
+  feature_count                          Int?               @default(0)
+  error_message                          String?
+  region_id                              Int?
+  properties                             Json?              @default("{}")
+  deleted_at                             DateTime?          @db.Timestamptz(6)
+  deleted_by                             Int?
+  marked_locations                       marked_locations[]
+  network_features                       network_features[]
+  users_network_files_deleted_byTousers  users?             @relation("network_files_deleted_byTousers", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  network_folders                        network_folders?   @relation(fields: [folder_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  regions                                regions?           @relation(fields: [region_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_network_files_uploaded_byTousers users?             @relation("network_files_uploaded_byTousers", fields: [uploaded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([folder_id, uploaded_by, region_id, processing_status], map: "idx_network_files_composite")
+  @@index([deleted_at], map: "idx_network_files_deleted_at")
+  @@index([folder_id], map: "idx_network_files_folder_id")
+  @@index([id], map: "idx_network_files_outcome_check", where: raw("((((metadata ->> 'is_outcome'::text) IS NULL) OR ((metadata ->> 'is_outcome'::text) <> 'true'::text)) AND (((properties ->> 'is_outcome'::text) IS NULL) OR ((properties ->> 'is_outcome'::text) <> 'true'::text)))"))
+  @@index([processing_status, folder_id, feature_count], map: "idx_network_files_processing_status", where: raw("((processing_status)::text = 'completed'::text)"))
+  @@index([region_id], map: "idx_network_files_region")
+  @@index([uploaded_by, created_at], map: "idx_network_files_uploaded_by")
+  @@index([uploaded_by, region_id, folder_id], map: "idx_network_files_user_region_outcome", where: raw("(((properties ->> 'is_outcome'::text) IS NULL) OR ((properties ->> 'is_outcome'::text) <> 'true'::text))"))
+}
+
+model network_folders {
+  id                                      Int                      @id @default(autoincrement())
+  name                                    String                   @db.VarChar(255)
+  parent_id                               Int?
+  is_system                               Boolean?                 @default(false)
+  created_at                              DateTime?                @default(now()) @db.Timestamptz(6)
+  updated_at                              DateTime?                @default(now()) @db.Timestamptz(6)
+  created_by                              Int?
+  category                                String?                  @default("customer") @db.VarChar(50)
+  default_icon                            String?                  @db.VarChar(50)
+  deleted_at                              DateTime?                @db.Timestamptz(6)
+  deleted_by                              Int?
+  infra_approvals                         infra_approvals[]
+  network_files                           network_files[]
+  users_network_folders_created_byTousers users?                   @relation("network_folders_created_byTousers", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_network_folders_deleted_byTousers users?                   @relation("network_folders_deleted_byTousers", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  network_folders                         network_folders?         @relation("network_foldersTonetwork_folders", fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  other_network_folders                   network_folders[]        @relation("network_foldersTonetwork_folders")
+  user_folder_access                      user_folder_access[]
+  user_folder_add_access                  user_folder_add_access[]
+
+  @@index([category], map: "idx_network_folders_category")
+  @@index([deleted_at], map: "idx_network_folders_deleted_at")
+  @@index([parent_id], map: "idx_network_folders_parent_id")
+  @@index([parent_id, is_system, created_by], map: "idx_network_folders_parent_system")
+  @@index([is_system, id], map: "idx_network_folders_system", where: raw("(is_system = true)"))
+}
+
+model notifications {
+  id                  Int       @id @default(autoincrement())
+  user_id             Int
+  type                String    @db.VarChar(50)
+  title               String    @db.VarChar(255)
+  message             String
+  is_read             Boolean?  @default(false)
+  created_at          DateTime? @default(now()) @db.Timestamp(6)
+  read_at             DateTime? @db.Timestamp(6)
+  action_url          String?   @db.VarChar(500)
+  related_entity_id   Int?
+  related_entity_type String?   @db.VarChar(50)
+
+  @@index([user_id, created_at(sort: Desc)], map: "idx_notifications_user_date")
+  @@index([user_id, is_read], map: "idx_notifications_user_read")
+}
+
+model passwords_reset_requests {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  token      String    @db.VarChar(255)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  expires_at DateTime  @db.Timestamp(6)
+  used_at    DateTime? @db.Timestamp(6)
+}
+
+model project_features {
+  id            String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  file_id       String?                  @db.Uuid
+  feature_type  String?                  @db.VarChar(50)
+  properties    Json?
+  geom          Unsupported("geometry")?
+  created_at    DateTime?                @default(now()) @db.Timestamptz(6)
+  project_files project_files?           @relation(fields: [file_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([geom], map: "idx_project_features_geom", type: Gist)
+  @@index([properties], map: "idx_project_features_properties", type: Gin)
+}
+
+model project_files {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  folder_id        String?            @db.Uuid
+  name             String             @db.VarChar(255)
+  type             String             @db.VarChar(50)
+  size_bytes       BigInt?
+  storage_path     String
+  metadata         Json?
+  is_visible       Boolean?           @default(true)
+  imported_at      DateTime?          @default(now()) @db.Timestamptz(6)
+  imported_by      Int?
+  project_features project_features[]
+  project_folders  project_folders?   @relation(fields: [folder_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model project_folders {
+  id                    String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                  String            @db.VarChar(255)
+  parent_id             String?           @db.Uuid
+  path                  String
+  created_at            DateTime?         @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime?         @default(now()) @db.Timestamptz(6)
+  project_files         project_files[]
+  project_folders       project_folders?  @relation("project_foldersToproject_folders", fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  other_project_folders project_folders[] @relation("project_foldersToproject_folders")
+}
+
+model region_boundaries {
+  id               Int                      @id @default(autoincrement())
+  region_id        Int
+  boundary_geojson Json
+  boundary_type    String?                  @default("Polygon") @db.VarChar(50)
+  version          Int?                     @default(1)
+  vertex_count     Int?
+  area_sqkm        Decimal?                 @db.Decimal
+  created_by       Int?
+  created_at       DateTime?                @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?                @default(now()) @db.Timestamp(6)
+  is_active        Int?                     @default(1)
+  source           String?                  @db.VarChar(100)
+  notes            String?
+  geom             Unsupported("geometry")?
+  geom_3857        Unsupported("geometry")?
+
+  @@index([geom], map: "idx_region_boundaries_geom", type: Gist)
+  @@index([geom_3857], map: "idx_region_boundaries_geom_3857", type: Gist)
+  @@index([geom], map: "idx_region_boundaries_geom_gist", type: Gist)
+}
+
+model region_requests {
+  id           Int       @id @default(autoincrement())
+  user_id      Int
+  region_id    Int
+  status       String?   @default("pending") @db.VarChar(50)
+  requested_at DateTime? @default(now()) @db.Timestamp(6)
+  reviewed_at  DateTime? @db.Timestamp(6)
+  reviewed_by  Int?
+  comments     String?
+}
+
+model regions {
+  id            Int             @id @default(autoincrement())
+  name          String          @db.VarChar(255)
+  code          String          @db.VarChar(50)
+  type          String?         @default("State") @db.VarChar(50)
+  parent_id     Int?
+  is_active     Boolean?        @default(true)
+  created_at    DateTime?       @default(now()) @db.Timestamp(6)
+  updated_at    DateTime?       @default(now()) @db.Timestamp(6)
+  network_files network_files[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model roles {
+  id                 Int       @id @default(autoincrement())
+  name               String    @unique @db.VarChar(50)
+  display_name       String    @db.VarChar(100)
+  description        String?
+  permissions        Json?     @default("[]")
+  color              String?   @default("#6B7280") @db.VarChar(20)
+  icon               String?   @default("user") @db.VarChar(50)
+  is_system          Boolean?  @default(false)
+  is_active          Boolean?  @default(true)
+  created_by         Int?
+  created_at         DateTime? @default(now()) @db.Timestamp(6)
+  updated_at         DateTime? @default(now()) @db.Timestamp(6)
+  default_folder_ids Json?     @default("[]")
+}
+
+model search_history {
+  id           Int       @id @default(autoincrement())
+  user_id      Int
+  search_query String    @db.VarChar(500)
+  search_type  String?   @db.VarChar(50)
+  result_count Int?      @default(0)
+  searched_at  DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model sector_rf {
+  id            Int       @id @default(autoincrement())
+  center_lat    Decimal   @db.Decimal
+  center_lng    Decimal   @db.Decimal
+  radius_meters Decimal   @db.Decimal
+  start_angle   Decimal   @db.Decimal
+  end_angle     Decimal   @db.Decimal
+  fill_color    String?   @default("#00FF00") @db.VarChar(20)
+  stroke_color  String?   @default("#000000") @db.VarChar(20)
+  name          String?   @db.VarChar(255)
+  created_by    Int?
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model sector_rf_data {
+  id             Int       @id @default(autoincrement())
+  user_id        Int
+  region_id      Int?
+  sector_name    String?   @db.VarChar(255)
+  created_at     DateTime? @default(now()) @db.Timestamp(6)
+  tower_lat      Decimal   @db.Decimal
+  tower_lng      Decimal   @db.Decimal
+  azimuth        Decimal   @db.Decimal
+  beamwidth      Decimal?  @default(65.00) @db.Decimal
+  radius         Decimal?  @default(1000.00) @db.Decimal
+  frequency      Decimal?  @db.Decimal
+  power          Decimal?  @db.Decimal
+  antenna_height Decimal?  @db.Decimal
+  antenna_type   String?   @db.VarChar(100)
+  fill_color     String?   @default("#ff6b6b") @db.VarChar(20)
+  stroke_color   String?   @default("#ff6b6b") @db.VarChar(20)
+  opacity        Decimal?  @default(0.40) @db.Decimal
+  properties     Json?
+  notes          String?
+  is_saved       Int?      @default(0)
+
+  @@index([region_id], map: "idx_sector_rf_region")
+  @@index([user_id, created_at(sort: Desc)], map: "idx_sector_rf_user")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
+}
+
+model system_api_annotations {
+  id              Int       @id @default(autoincrement())
+  method          String    @db.VarChar(10)
+  path            String    @db.VarChar(255)
+  description     String?
+  usage_example   String?
+  response_schema String?
+  updated_by      String?   @db.VarChar(100)
+  last_updated_at DateTime? @default(now()) @db.Timestamp(6)
+
+  @@unique([method, path])
+}
+
+model system_permissions {
+  id          Int       @id @default(autoincrement())
+  category    String    @db.VarChar(50)
+  code        String    @unique @db.VarChar(100)
+  name        String    @db.VarChar(100)
+  description String?
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model system_schema_annotations {
+  table_name      String    @id @db.VarChar(255)
+  description     String?
+  last_updated_at DateTime? @default(now()) @db.Timestamp(6)
+  updated_by      String?   @db.VarChar(255)
+}
+
+model system_updates {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  title        String    @db.VarChar(255)
+  content      String
+  type         String    @db.VarChar(50)
+  version_tag  String?   @db.VarChar(50)
+  is_published Boolean?  @default(false)
+  is_automated Boolean?  @default(false)
+  created_by   Int?
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime? @default(now()) @db.Timestamptz(6)
+  users        users?    @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model temporary_access_log {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  granted_by Int
+  region_id  Int?
+  start_time DateTime? @default(now()) @db.Timestamp(6)
+  end_time   DateTime  @db.Timestamp(6)
+  reason     String?
+  status     String?   @default("active") @db.VarChar(50)
+  revoked_at DateTime? @db.Timestamp(6)
+  revoked_by Int?
+
+  @@index([user_id, status, end_time], map: "idx_temp_access_status")
+  @@index([status, end_time], map: "idx_temp_access_status_end")
+}
+
+model user_folder_access {
+  id              Int              @id @default(autoincrement())
+  user_id         Int?
+  folder_id       Int?
+  can_read        Boolean?         @default(true)
+  can_write       Boolean?         @default(false)
+  can_edit        Boolean?         @default(false)
+  can_delete      Boolean?         @default(false)
+  granted_at      DateTime?        @default(now()) @db.Timestamptz(6)
+  network_folders network_folders? @relation(fields: [folder_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           users?           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, folder_id], map: "uq_user_folder")
+  @@index([user_id], map: "idx_user_folder_access_user")
+}
+
+model user_folder_add_access {
+  user_id         Int
+  folder_id       Int
+  created_at      DateTime?       @default(now()) @db.Timestamptz(6)
+  network_folders network_folders @relation(fields: [folder_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           users           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, folder_id])
+  @@index([folder_id], map: "idx_user_folder_add_access_folder_id")
+  @@index([user_id], map: "idx_user_folder_add_access_user_id")
+}
+
+model user_map_preferences {
+  id                    Int       @id @default(autoincrement())
+  user_id               Int
+  default_map_type      String?   @default("satellite") @db.VarChar(50)
+  default_zoom          Int?      @default(10)
+  default_center        Json?
+  default_region_id     Int?
+  theme                 String?   @default("auto") @db.VarChar(20)
+  measurement_unit      String?   @default("metric") @db.VarChar(20)
+  show_coordinates      Int?      @default(1)
+  show_scale            Int?      @default(1)
+  auto_save_enabled     Int?      @default(1)
+  notifications_enabled Int?      @default(1)
+  preferences           Json?
+  created_at            DateTime? @default(now()) @db.Timestamp(6)
+  updated_at            DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model user_permissions {
+  id            Int       @id @default(autoincrement())
+  user_id       Int
+  permission_id String    @db.VarChar(100)
+  granted_by    Int
+  granted_at    DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model user_regions {
+  id           Int       @id @default(autoincrement())
+  user_id      Int
+  region_id    Int
+  access_level String?   @default("read") @db.VarChar(50)
+  assigned_at  DateTime? @default(now()) @db.Timestamp(6)
+  assigned_by  Int?
+
+  @@unique([user_id, region_id], map: "unique_user_region_access")
+}
+
+model user_sessions {
+  id            Int       @id @default(autoincrement())
+  session_token String?   @db.VarChar(255)
+  user_id       Int
+  token         String    @db.VarChar(500)
+  ip_address    String?   @db.VarChar(45)
+  user_agent    String?
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+  expires_at    DateTime  @db.Timestamp(6)
+  logout_time   DateTime? @db.Timestamp(6)
+  logout_type   String?   @db.VarChar(20)
+  last_activity DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model user_settings {
+  user_id       Int       @id
+  settings_json Json?
+  updated_at    DateTime? @default(now()) @db.Timestamp(6)
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model users {
+  id                                                  Int                      @id @default(autoincrement())
+  email                                               String                   @db.VarChar(255)
+  password                                            String?                  @db.VarChar(255)
+  password_hash                                       String?                  @db.VarChar(255)
+  username                                            String                   @db.VarChar(100)
+  full_name                                           String?                  @db.VarChar(255)
+  phone                                               String?                  @db.VarChar(20)
+  department                                          String?                  @db.VarChar(100)
+  office_location                                     String?                  @db.VarChar(255)
+  gender                                              String?                  @db.VarChar(50)
+  street                                              String?                  @db.VarChar(255)
+  city                                                String?                  @db.VarChar(100)
+  state                                               String?                  @db.VarChar(100)
+  pincode                                             String?                  @db.VarChar(10)
+  role                                                String?                  @default("user") @db.VarChar(50)
+  is_verified                                         Int?                     @default(0)
+  is_active                                           Boolean?                 @default(true)
+  is_email_verified                                   Boolean?                 @default(false)
+  email_verified_at                                   DateTime?                @db.Timestamp(6)
+  email_verified_by                                   Int?
+  manual_verification                                 Int?                     @default(0)
+  last_verification_email_sent                        DateTime?                @db.Timestamp(6)
+  verification_token                                  String?                  @db.VarChar(255)
+  verification_token_expires                          DateTime?                @db.Timestamp(6)
+  mfa_enabled                                         Int?                     @default(0)
+  mfa_method                                          String?                  @default("email") @db.VarChar(50)
+  mfa_enabled_at                                      DateTime?                @db.Timestamp(6)
+  is_online                                           Boolean?                 @default(false)
+  created_by                                          Int?
+  created_at                                          DateTime?                @default(now()) @db.Timestamp(6)
+  updated_at                                          DateTime?                @default(now()) @db.Timestamp(6)
+  last_login                                          DateTime?                @db.Timestamp(6)
+  permissions                                         Json?                    @default("[]")
+  last_active_at                                      DateTime?                @default(now()) @db.Timestamptz(6)
+  map_preferences                                     Json?                    @default("{}")
+  infra_approvals_infra_approvals_approved_byTousers  infra_approvals[]        @relation("infra_approvals_approved_byTousers")
+  infra_approvals_infra_approvals_edited_byTousers    infra_approvals[]        @relation("infra_approvals_edited_byTousers")
+  infra_approvals_infra_approvals_submitted_byTousers infra_approvals[]        @relation("infra_approvals_submitted_byTousers")
+  marked_locations                                    marked_locations[]
+  network_features_network_features_created_byTousers network_features[]       @relation("network_features_created_byTousers")
+  network_features_network_features_deleted_byTousers network_features[]       @relation("network_features_deleted_byTousers")
+  network_features_network_features_updated_byTousers network_features[]       @relation("network_features_updated_byTousers")
+  network_files_network_files_deleted_byTousers       network_files[]          @relation("network_files_deleted_byTousers")
+  network_files_network_files_uploaded_byTousers      network_files[]          @relation("network_files_uploaded_byTousers")
+  network_folders_network_folders_created_byTousers   network_folders[]        @relation("network_folders_created_byTousers")
+  network_folders_network_folders_deleted_byTousers   network_folders[]        @relation("network_folders_deleted_byTousers")
+  system_updates                                      system_updates[]
+  user_folder_access                                  user_folder_access[]
+  user_folder_add_access                              user_folder_add_access[]
+
+  @@index([department], map: "idx_users_department")
+  @@index([email], map: "idx_users_email")
+  @@index([last_active_at], map: "idx_users_last_active_at")
+  @@index([role], map: "idx_users_role")
+  @@index([username], map: "idx_users_username")
+}
