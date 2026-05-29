@@ -38,3 +38,44 @@ When generating responses or code, you MUST adhere to the following rules:
 7. **Environment & AI Security:**
    - The frontend is strictly prohibited from holding or executing AI API keys or direct LLM calls. All AI prompts must be securely proxied through the Express backend.
    - Wrap backend route handlers in an `asyncHandler()` and throw instances of an `AppError` caught globally to prevent boilerplate try/catch blocks.
+
+## Version Control
+
+8. **GitHub Repository & Save Points:**
+   - The stable, pristine codebase is maintained at `https://github.com/Himil1498/Antigravity_GIS.git`.
+   - Before beginning any major feature work, architectural changes, or large refactors, you must commit the stable codebase to the `main` branch or create a separate feature branch.
+   - Always push successfully compiled code to remote to maintain a safe 'save point'. Never leave the repo in a broken state without committing the working state first.
+
+## Best Practices & Patterns
+
+9. **State Management Rules:**
+   - Only use Redux for global application state (e.g., User Auth, Global Theme, cross-page datasets).
+   - Strictly use local `useState` or `useReducer` for UI toggles (e.g., opening modals, expanding dropdowns) to prevent Redux store bloat.
+
+10. **Component Reusability (DRY):**
+    - Before creating a new generic UI element (Button, Input, Modal, Card), you MUST check if a reusable version already exists in the common components directory. Never duplicate basic UI elements.
+
+11. **Database Integrity (Prisma):**
+    - When performing operations that affect multiple tables or involve complex logic, ALWAYS use Prisma `$transaction`. Never leave orphaned data if a query fails halfway.
+
+12. **Error Surfacing & Toast Notifications:**
+    - Do NOT use `alert()` or leave unhandled `console.log()` errors in production.
+    - All user-facing errors must be routed through the centralized Toast notification system to maintain a premium UI experience.
+
+13. **Git Commit Standards:**
+    - All commits must follow the conventional commit format: `feat: [description]` for new features, `fix: [description]` for bugs, and `refactor: [description]` for code cleanup.
+
+14. **Naming Conventions:**
+    - Strictly use `PascalCase` for React components and interface definitions (e.g., `MapOverlay.tsx`, `UserData`).
+    - Use `camelCase` for functions and variables.
+    - Use `UPPER_SNAKE_CASE` for configuration constants.
+
+## GIS & Performance Specifics
+
+15. **GIS Performance & Map Rendering (Frontend):**
+    - When dealing with large map datasets (Deck.gl layers, Google Maps markers, or complex Polygons), you MUST aggressively use `useMemo` and `useCallback` to prevent unnecessary re-renders. 
+    - Never recalculate heavy spatial data on every render cycle.
+
+16. **Data Pagination & Payload Limits (Backend):**
+    - Never return raw, unfiltered massive database tables to the frontend.
+    - All large data requests (especially spatial coordinates and infrastructure) must be handled via pagination, bounding-box filtering, or Vector Tiles to maintain low memory usage and fast response times.
