@@ -65,6 +65,7 @@ export const VISIBLE_PERMISSIONS = {
     "admin:database:export",
     "data:export",
     "admin:role_builder",
+    "admin:system_updates",
   ],
   analytics: ["analytics:view"],
   help: [

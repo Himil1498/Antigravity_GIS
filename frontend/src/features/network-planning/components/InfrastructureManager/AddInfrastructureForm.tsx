@@ -86,7 +86,7 @@ const InputField: React.FC<InputFieldProps> = memo(
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+        className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
       />
     </div>
   ),
@@ -930,7 +930,7 @@ const AddInfrastructureForm: React.FC<AddInfrastructureFormProps> = ({
                   value={formData.latitude}
                   onChange={handleChange}
                   placeholder="Latitude *"
-                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-xl"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl"
                 />
                 <input
                   type="text"
@@ -938,7 +938,7 @@ const AddInfrastructureForm: React.FC<AddInfrastructureFormProps> = ({
                   value={formData.longitude}
                   onChange={handleChange}
                   placeholder="Longitude *"
-                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-xl"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl"
                 />
               </div>
             </div>
@@ -1591,7 +1591,7 @@ const AddInfrastructureForm: React.FC<AddInfrastructureFormProps> = ({
                               value={item.name}
                               onChange={(e) => updateInventoryItem(item.id, 'name', e.target.value)}
                               placeholder={`e.g., Cisco ${item.type}`}
-                              className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                              className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
                             />
                           </div>
 
@@ -1614,7 +1614,7 @@ const AddInfrastructureForm: React.FC<AddInfrastructureFormProps> = ({
                                   value={ip.value}
                                   onChange={(e) => updateIpInInventory(item.id, ip.id, e.target.value)}
                                   placeholder="e.g., 192.168.1.1"
-                                  className="flex-1 px-3 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-mono"
+                                  className="flex-1 px-3 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-mono"
                                 />
                                 {item.ips.length > 1 && (
                                   <button
@@ -1655,7 +1655,7 @@ const AddInfrastructureForm: React.FC<AddInfrastructureFormProps> = ({
                 value={formData.notes}
                 onChange={handleChange}
                 rows={4}
-                className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
                 placeholder="Notes..."
               />
             </div>

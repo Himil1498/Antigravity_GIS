@@ -1,8 +1,8 @@
 generator client {
   provider        = "prisma-client-js"
-  engineType      = "library"
   output          = "../src/generated/prisma"
-  previewFeatures = ["partialIndexes", "driverAdapters"]
+  previewFeatures = ["driverAdapters", "partialIndexes"]
+  engineType      = "library"
 }
 
 datasource db {
@@ -340,42 +340,6 @@ model gis_features {
   updated_at   DateTime?                @db.Timestamp(6)
 }
 
-model group_members {
-  id       Int       @id @default(autoincrement())
-  group_id Int
-  user_id  Int
-  role     String?   @default("member") @db.VarChar(50)
-  added_by Int
-  added_at DateTime? @default(now()) @db.Timestamp(6)
-}
-
-model group_permissions {
-  id            Int       @id @default(autoincrement())
-  group_id      Int
-  permission_id String    @db.VarChar(100)
-  granted_by    Int
-  granted_at    DateTime? @default(now()) @db.Timestamp(6)
-}
-
-model group_regions {
-  id          Int       @id @default(autoincrement())
-  group_id    Int
-  region_id   Int
-  assigned_by Int
-  assigned_at DateTime? @default(now()) @db.Timestamp(6)
-}
-
-model groups {
-  id          Int       @id @default(autoincrement())
-  name        String    @db.VarChar(255)
-  description String?
-  created_by  Int
-  is_active   Boolean?  @default(true)
-  created_at  DateTime? @default(now()) @db.Timestamp(6)
-  updated_at  DateTime? @default(now()) @db.Timestamp(6)
-  permissions Json?     @default("[]")
-}
-
 model infra_approvals {
   id                                        Int              @id @default(autoincrement())
   folder_id                                 Int?
@@ -483,7 +447,6 @@ model network_features {
   @@index([deleted_by, deleted_at], map: "idx_network_features_deleted_by", where: raw("(deleted_at IS NOT NULL)"))
   @@index([deleted_at], map: "idx_network_features_deleted_items", where: raw("(deleted_at IS NOT NULL)"))
   @@index([file_id, deleted_at], map: "idx_network_features_file_deleted", where: raw("(deleted_at IS NULL)"))
-  @@index([file_id, geom], map: "idx_network_features_file_geom_active", where: raw("(deleted_at IS NULL)"))
   @@index([file_id], map: "idx_network_features_file_id")
   @@index([geom], map: "idx_network_features_geom", type: Gist)
   @@index([geom], map: "idx_network_features_geom_3857", type: Gist, where: raw("(st_srid(geom) = ANY (ARRAY[0, 3857]))"))
@@ -570,6 +533,7 @@ model notifications {
 
   @@index([user_id, created_at(sort: Desc)], map: "idx_notifications_user_date")
   @@index([user_id, is_read], map: "idx_notifications_user_read")
+  @@index([user_id, is_read], map: "idx_notifications_user_id_is_read")
 }
 
 model passwords_reset_requests {
@@ -942,4 +906,40 @@ model users {
   @@index([last_active_at], map: "idx_users_last_active_at")
   @@index([role], map: "idx_users_role")
   @@index([username], map: "idx_users_username")
+}
+
+model group_members {
+  id       Int       @id @default(autoincrement())
+  group_id Int
+  user_id  Int
+  role     String?   @default("member") @db.VarChar(50)
+  added_by Int
+  added_at DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model group_permissions {
+  id            Int       @id @default(autoincrement())
+  group_id      Int
+  permission_id String    @db.VarChar(100)
+  granted_by    Int
+  granted_at    DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model group_regions {
+  id          Int       @id @default(autoincrement())
+  group_id    Int
+  region_id   Int
+  assigned_by Int
+  assigned_at DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model groups {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(255)
+  description String?
+  created_by  Int
+  is_active   Boolean?  @default(true)
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_at  DateTime? @default(now()) @db.Timestamp(6)
+  permissions Json?     @default("[]")
 }

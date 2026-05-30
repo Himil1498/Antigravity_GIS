@@ -62,22 +62,28 @@ export const geojsonToGooglePaths = (
 export const googlePathsToGeoJSON = (
   paths: google.maps.LatLng[][][]
 ): GeoJSONGeometry => {
+  // Helper to ensure ring is closed
+  const ensureClosed = (ring: google.maps.LatLng[]) => {
+    if (ring.length === 0) return [];
+    const coords = ring.map((latLng) => [latLng.lng(), latLng.lat()]);
+    const first = coords[0];
+    const last = coords[coords.length - 1];
+    if (first[0] !== last[0] || first[1] !== last[1]) {
+      coords.push([first[0], first[1]]);
+    }
+    return coords;
+  };
+
   if (paths.length === 1) {
     // Single Polygon
-    const coordinates = paths[0].map((ring) =>
-      ring.map((latLng) => [latLng.lng(), latLng.lat()])
-    );
+    const coordinates = paths[0].map(ensureClosed);
     return {
       type: "Polygon",
       coordinates: coordinates,
     };
   } else {
     // MultiPolygon
-    const coordinates = paths.map((polygon) =>
-      polygon.map((ring) =>
-        ring.map((latLng) => [latLng.lng(), latLng.lat()])
-      )
-    );
+    const coordinates = paths.map((polygon) => polygon.map(ensureClosed));
     return {
       type: "MultiPolygon",
       coordinates: coordinates,

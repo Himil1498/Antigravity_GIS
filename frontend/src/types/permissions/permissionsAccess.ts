@@ -9,7 +9,6 @@ export interface PermissionCheckResult {
 // ===== Effective Permissions =====
 export interface EffectivePermissions {
   direct: string[];              // Direct user permissions
-  fromGroups: string[];          // Permissions from groups
   all: Set<string>;              // Combined (for fast lookup)
 }
 

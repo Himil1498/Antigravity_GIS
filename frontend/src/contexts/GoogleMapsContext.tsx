@@ -69,7 +69,9 @@ export const GoogleMapsProvider: React.FC<GoogleMapsProviderProps> = ({
             await new Promise((resolve) => setTimeout(resolve, 100));
             setIsLoaded(true);
             setLoadError(null);
+            
             if (window.google?.maps) {
+              // Removed ineffective patch
               if (window.google.maps.Geocoder)
                 setGeocoder(new window.google.maps.Geocoder());
               if (window.google.maps.DirectionsService)

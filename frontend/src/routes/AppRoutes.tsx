@@ -17,7 +17,7 @@ const Dashboard = lazy(() => import("../pages/Dashboard"));
 
 // Medium pages
 const UsersPage = lazy(() => import("../pages/UsersPage"));
-const GroupsManagement = lazy(() => import("../pages/GroupsManagement"));
+
 const SecurityPage = lazy(() => import("../features/auth/pages/SecurityPage"));
 const NotificationsPage = lazy(
   () => import("../pages/NotificationsPage/NotificationsPage"),
@@ -97,11 +97,7 @@ const AdminGuidePage = lazy(() =>
     (module) => ({ default: module.AdminGuidePage }),
   ),
 );
-const GroupsGuidePage = lazy(() =>
-  import("../features/interactive-guides/Groups/GroupsGuidePage").then(
-    (module) => ({ default: module.GroupsGuidePage }),
-  ),
-);
+
 const AnalyticsGuidePage = lazy(() =>
   import("../features/interactive-guides/Analytics/AnalyticsGuidePage").then(
     (module) => ({ default: module.AnalyticsGuidePage }),
@@ -206,14 +202,7 @@ const AppRoutes: React.FC = () => {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/groups"
-          element={
-            <ProtectedRoute requiredPermission="groups:view">
-              <GroupsManagement />
-            </ProtectedRoute>
-          }
-        />
+
         <Route
           path="/admin"
           element={
@@ -452,16 +441,7 @@ const AppRoutes: React.FC = () => {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/groups-guide"
-          element={
-            <ProtectedRoute>
-              <main className="pt-16 min-h-screen bg-gray-50 dark:bg-gray-900">
-                <GroupsGuidePage />
-              </main>
-            </ProtectedRoute>
-          }
-        />
+
         <Route
           path="/map-guide"
           element={

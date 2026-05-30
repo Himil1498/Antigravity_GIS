@@ -1,18 +1,24 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAppDispatch } from "../../../store/index";
 import { addNotification } from "../../../store/slices/ui/index";
 import { createOverlaysFromData } from "../../../utils/layerVisualization/index";
 import { LayerState } from "../types/index";
+import { useTheme } from "../../../contexts/ThemeContext";
+import { darkMapStyle } from "../utils/mapStyles";
+
 export const useMap360View = (
   mapInstance: google.maps.Map | null,
   layersState: LayerState
 ) => {
   const dispatch = useAppDispatch();
+  const { isDarkMode } = useTheme();
   const [show360View, setShow360View] = useState(false);
   const [show360ViewPosition, setShow360ViewPosition] = useState<{
     lat: number;
     lng: number;
   } | null>(null);
+  
+  const miniMapRef = useRef<google.maps.Map | null>(null);
 
   useEffect(() => {
     if (show360View && show360ViewPosition && window.google) {
@@ -41,7 +47,9 @@ export const useMap360View = (
             disableDefaultUI: true,
             zoomControl: true,
             gestureHandling: "greedy",
+            styles: isDarkMode ? darkMapStyle : [],
           });
+          miniMapRef.current = miniMap;
 
           // Marker for position
           new google.maps.Marker({
@@ -80,7 +88,14 @@ export const useMap360View = (
         );
       }
     }
-  }, [show360View, show360ViewPosition, mapInstance, layersState, dispatch]);
+  }, [show360View, show360ViewPosition, mapInstance, layersState, dispatch]); // Notice we do NOT include isDarkMode here to prevent streetview recreation!
+
+  // Dynamic Theme Updater
+  useEffect(() => {
+    if (miniMapRef.current) {
+      miniMapRef.current.setOptions({ styles: isDarkMode ? darkMapStyle : [] });
+    }
+  }, [isDarkMode]);
 
   return {
     show360View,

@@ -52,7 +52,7 @@ const KPICard: React.FC<KPICardProps> = ({ card }) => {
 
   return (
     <div 
-      className="bg-white dark:bg-gray-800 rounded-xl transition-all duration-300 relative group cursor-default hover:-translate-y-1"
+      className="bg-white dark:bg-gray-800 rounded-xl transition-all duration-300 relative group cursor-default hover:-translate-y-1 hover:z-50"
       style={{
         boxShadow: `
           0 2px 8px rgba(0,0,0,0.08),
@@ -136,8 +136,11 @@ const KPICard: React.FC<KPICardProps> = ({ card }) => {
 
       {/* Hover Tooltip Breakdown */}
       {card.breakdown && card.breakdown.length > 0 && (
-        <div className="absolute z-50 bottom-[105%] left-1/2 -translate-x-1/2 mb-2 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-hover:pointer-events-auto transition-all duration-300 pointer-events-none drop-shadow-xl">
+        <div className="absolute z-[100] top-[105%] left-1/2 -translate-x-1/2 mt-2 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-hover:pointer-events-auto transition-all duration-300 pointer-events-none drop-shadow-xl">
           <div className="relative bg-gray-900/95 backdrop-blur-sm border border-gray-700 p-3 rounded-xl shadow-2xl">
+            {/* Tooltip Arrow (Now on top pointing up) */}
+            <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-gray-900 border-t border-l border-gray-700 rotate-45"></div>
+            
             <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 border-b border-gray-700/50 pb-1">
               Regions Breakdown
             </h4>
@@ -166,8 +169,6 @@ const KPICard: React.FC<KPICardProps> = ({ card }) => {
                 </div>
               ))}
             </div>
-            {/* Tooltip Arrow */}
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-gray-900 border-b border-r border-gray-700 rotate-45"></div>
           </div>
         </div>
       )}

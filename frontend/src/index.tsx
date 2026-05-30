@@ -1,4 +1,5 @@
 import React from "react";
+import { Deck, WebMercatorViewport } from '@deck.gl/core';
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./App.css";
@@ -11,6 +12,21 @@ if (process.env.NODE_ENV === "production") {
   console.debug = () => {};
   console.info = () => {};
 }
+
+// --- DECK.GL CRASH FIX ---
+// Prevents "Cannot read properties of undefined (reading 'project')" during fast unmounts/mounts.
+if (Deck && Deck.prototype.getViewports) {
+  const origGetViewports = Deck.prototype.getViewports;
+  Deck.prototype.getViewports = function() {
+    const viewports = origGetViewports.call(this);
+    if (!viewports || viewports.length === 0 || !viewports[0]) {
+      // Return a valid WebMercatorViewport to swallow the mouse event safely without breaking picking
+      return [new WebMercatorViewport({ width: 1, height: 1, longitude: 0, latitude: 0, zoom: 1 })];
+    }
+    return viewports;
+  };
+}
+// -------------------------
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement,

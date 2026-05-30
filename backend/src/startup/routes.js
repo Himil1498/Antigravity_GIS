@@ -130,11 +130,7 @@ const configureRoutes = (app) => {
       path: "../modules/access-control/access.routes",
       mount: "/api", // This routes file contains /temporary-access, /permissions, etc. so we mount at root /api
     },
-    {
-      name: "groups",
-      path: "../modules/group/group.routes",
-      mount: "/api/groups",
-    },
+
     {
       name: "bookmarks",
       path: "../modules/bookmark/bookmark.routes",

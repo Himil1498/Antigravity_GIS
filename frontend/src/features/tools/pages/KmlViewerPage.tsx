@@ -5,6 +5,8 @@ import { GoogleMap, InfoWindow, Marker } from '@react-google-maps/api';
 import { useGoogleMaps } from '../../../contexts/GoogleMapsContext';
 import { useToolsContext } from '../contexts/ToolsContext';
 import { GlobeAmericasIcon, XMarkIcon, MagnifyingGlassIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MapIcon } from '@heroicons/react/24/outline';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { darkMapStyle } from '../../map/utils/mapStyles';
 
 interface MapPoint {
     id: string;
@@ -24,6 +26,7 @@ const MAP_ID = "DEMO_MAP_ID";
 
 const KmlViewerPage: React.FC = () => {
   const { state, saveViewerState } = useToolsContext();
+  const { isDarkMode } = useTheme();
 
   const [kmlFile, setKmlFile] = useState<File | null>(state.viewer.kmlFile);
   const [isDragActive, setIsDragActive] = useState(false);
@@ -358,7 +361,7 @@ const KmlViewerPage: React.FC = () => {
                         mapContainerStyle={mapContainerStyle}
                         center={selectedPoint ? {lat: selectedPoint.lat, lng: selectedPoint.lng} : (viewerData.length > 0 ? {lat: viewerData[0].lat, lng: viewerData[0].lng} : defaultCenter)}
                         zoom={selectedPoint ? 16 : (viewerData.length > 0 ? 10 : 5)}
-                        options={{ streetViewControl: false, mapTypeControl: true, fullscreenControl: true, gestureHandling: 'greedy', styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }] }}
+                        options={{ streetViewControl: false, mapTypeControl: true, fullscreenControl: true, gestureHandling: 'greedy', styles: isDarkMode ? darkMapStyle : [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }] }}
                     >
                         {viewerData.map(point => (
                             <Marker

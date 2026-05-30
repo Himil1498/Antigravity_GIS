@@ -78,18 +78,7 @@ exports.getUserPermissions = async (req, res) => {
     const user = users[0];
     const directPermissions = user.permissions || [];
 
-    // 2. Get Group Permissions
-    const [groups] = await pool.query(
-      `SELECT g.permissions 
-       FROM "groups" g
-       JOIN group_members gm ON g.id = gm.group_id
-       WHERE gm.user_id = ? AND g.is_active::boolean = true`,
-      [id],
-    );
-
-    const groupPermissions = groups.reduce((acc, g) => {
-      return [...acc, ...(g.permissions || [])];
-    }, []);
+    // 2. Groups removed.
 
     // 3. Get Role Permissions (Fix: Fetch permissions linked to the User Role)
     let rolePermissions = [];
@@ -115,7 +104,7 @@ exports.getUserPermissions = async (req, res) => {
     }
 
     // Merge Group and Role permissions for "Inherited"
-    const allInherited = [...new Set([...groupPermissions, ...rolePermissions])];
+    const allInherited = [...new Set([...rolePermissions])];
 
     res.json({
       success: true,

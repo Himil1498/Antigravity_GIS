@@ -16,7 +16,7 @@ import GlobalAnnouncement from "../components/ui/GlobalAnnouncement";
 
 const Dashboard: React.FC = () => {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
-  const [showAllUsers, setShowAllUsers] = useState(false);
+  const [showAllUsers] = useState(false);
 
   // Use the unified dashboard data hook
   const {
@@ -26,6 +26,8 @@ const Dashboard: React.FC = () => {
     performanceData,
     performanceLoading,
     totalRegions,
+    autoRefresh,
+    setAutoRefresh,
   } = useDashboardData(showAllUsers);
 
   if (!isAuthenticated) {
@@ -48,6 +50,8 @@ const Dashboard: React.FC = () => {
         onRefresh={handleRefresh}
         lastRefresh={lastRefresh}
         totalRegions={totalRegions}
+        autoRefresh={autoRefresh}
+        onToggleAutoRefresh={() => setAutoRefresh(!autoRefresh)}
       />
 
       {/* Main Content Areas */}

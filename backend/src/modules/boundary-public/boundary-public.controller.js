@@ -16,7 +16,7 @@ const getAllPublishedBoundaries = async (req, res) => {
     // Original formatBoundary util was simple:
     const formatted = boundaries.map((b) => ({
       id: b.id,
-      regionId: b.regionId || b.id || b.regionid, // Handles both alias and raw column
+      regionId: b.regionId || b.regionid || b.region_id || b.id, // Handles both alias and raw column properly
       regionName: b.regionName || b.name || b.regionname,
       boundaryGeoJSON:
         b.boundaryGeoJSON || b.boundary_geojson || b.boundarygeojson,

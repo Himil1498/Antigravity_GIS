@@ -20,39 +20,9 @@ const getUserEffectivePermissions = async (userId) => {
 
     const directPerms = userRows[0]?.permissions || [];
 
-    // Get permissions from groups table (JSONB)
-    // Query joins group_members to get groups assigned to the user
-    // Note: 'groups' is a reserved word in SQL, so we quote it
-    const [groupRows] = await pool.query(
-      `SELECT g.permissions
-       FROM "groups" g
-       INNER JOIN group_members gm ON g.id = gm.group_id
-       WHERE gm.user_id = ?`,
-      [userId]
-    );
 
-    // Combine all permissions
-    let allPermissions = [...directPerms];
 
-    // Add permissions from each group
-    groupRows.forEach((row) => {
-      if (Array.isArray(row.permissions)) {
-        allPermissions.push(...row.permissions);
-      } else if (typeof row.permissions === "string") {
-        // Handle case where it might be returned as string depending on driver/DB
-        try {
-          const parsed = JSON.parse(row.permissions);
-          if (Array.isArray(parsed)) {
-            allPermissions.push(...parsed);
-          }
-        } catch (e) {
-          console.error("Error parsing group permissions JSON:", e);
-        }
-      }
-    });
-
-    // Deduplicate
-    return Array.from(new Set(allPermissions));
+    return Array.from(new Set(directPerms));
   } catch (error) {
     console.error("Error fetching user permissions:", error);
     return [];

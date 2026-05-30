@@ -147,5 +147,14 @@ export const ADMIN_PERMISSIONS: PermissionDefinition[] = [
     action: "role_builder",
     isSystemPermission: true,
   },
+  {
+    id: "admin:system_updates",
+    name: "System Updates",
+    description: "Manage and deploy system updates",
+    category: PermissionCategory.ADMIN,
+    module: "admin",
+    action: "system_updates",
+    isSystemPermission: true,
+  },
 ];
 

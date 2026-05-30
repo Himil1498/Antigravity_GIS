@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import JSZip from 'jszip';
@@ -27,6 +27,8 @@ import {
 import { apiClient } from '../../../services/api/client';
 import { toast } from 'react-toastify';
 import { usePermission } from '../../../hooks/usePermission';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { darkMapStyle } from '../../map/utils/mapStyles';
 
 // --- Types ---
 export interface PreviewPoint {
@@ -108,6 +110,7 @@ const DeleteConfirmationModal: React.FC<DeleteModalProps> = ({ isOpen, onClose, 
 
 const ExcelKmlPage: React.FC = () => {
   const { state, saveExcelKmlState } = useToolsContext();
+  const { isDarkMode } = useTheme();
 
   // Converter State
   const [file, setFile] = useState<File | null>(state.excelKml.file);
@@ -252,35 +255,39 @@ const ExcelKmlPage: React.FC = () => {
   };
   
   // Filter Logic (Global Search across all standard and dynamic fields)
-  const filteredData = previewData.filter((p) => {
-    const searchLower = searchTerm.toLowerCase();
-    
-    // Check standard fields
-    if (
-      p.name.toLowerCase().includes(searchLower) ||
-      p.desc.toLowerCase().includes(searchLower) ||
-      p.lat.toString().includes(searchLower) ||
-      p.lng.toString().includes(searchLower)
-    ) {
-      return true;
-    }
+  const filteredData = useMemo(() => {
+    return previewData.filter((p) => {
+      const searchLower = searchTerm.toLowerCase();
+      
+      // Check standard fields
+      if (
+        p.name.toLowerCase().includes(searchLower) ||
+        p.desc.toLowerCase().includes(searchLower) ||
+        p.lat.toString().includes(searchLower) ||
+        p.lng.toString().includes(searchLower)
+      ) {
+        return true;
+      }
 
-    // Check dynamic otherData fields
-    if (p.otherData) {
-      return Object.values(p.otherData).some((val) => 
-        String(val).toLowerCase().includes(searchLower)
-      );
-    }
+      // Check dynamic otherData fields
+      if (p.otherData) {
+        return Object.values(p.otherData).some((val) => 
+          String(val).toLowerCase().includes(searchLower)
+        );
+      }
 
-    return false;
-  });
+      return false;
+    });
+  }, [previewData, searchTerm]);
 
   // Extract all unique dynamic keys for table headers
-  const dynamicKeys = Array.from(
-    new Set(
-      filteredData.flatMap(p => Object.keys(p.otherData || {}))
-    )
-  );
+  const dynamicKeys = useMemo(() => {
+    return Array.from(
+      new Set(
+        filteredData.flatMap(p => Object.keys(p.otherData || {}))
+      )
+    );
+  }, [filteredData]);
 
   const handleSelectPoint = (point: PreviewPoint) => {
     setSelectedPoint(point);
@@ -306,7 +313,8 @@ const ExcelKmlPage: React.FC = () => {
           Latitude: p.lat,
           Longitude: p.lng,
           Description: p.desc,
-          Icon: p.icon || ''
+          Icon: p.icon || '',
+          ...(p.otherData || {})
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -353,7 +361,8 @@ const ExcelKmlPage: React.FC = () => {
         Latitude: p.lat,
         Longitude: p.lng,
         Description: p.desc,
-        Icon: p.icon || ''
+        Icon: p.icon || '',
+        ...(p.otherData || {})
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -746,7 +755,7 @@ const ExcelKmlPage: React.FC = () => {
                                 mapTypeControl: true, // Enable Map Type
                                 fullscreenControl: true,
                                 gestureHandling: 'greedy', // Allow scroll zoom without Ctrl
-                                styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }] // Cleaner map
+                                styles: isDarkMode ? darkMapStyle : [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }]
                             }}
                         >
                             {previewData.map(point => (

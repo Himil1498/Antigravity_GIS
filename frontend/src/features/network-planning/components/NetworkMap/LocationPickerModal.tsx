@@ -98,7 +98,11 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   // Dynamic Map Theme
   useEffect(() => {
     if (mapRef.current) {
-      mapRef.current.setOptions({ styles: isDarkMode ? darkMapStyle : [] });
+      if (isDarkMode) {
+        mapRef.current.setOptions({ styles: darkMapStyle, colorScheme: 'DARK' });
+      } else {
+        mapRef.current.setOptions({ styles: [], colorScheme: 'LIGHT' });
+      }
     }
   }, [isDarkMode]);
 

@@ -10,12 +10,15 @@ import {
   Redo2,
   Save,
   Maximize,
+  Wand2,
+  ShieldAlert,
+  Combine,
 } from "lucide-react";
 
 interface RegionEditorToolbarToolsProps {
   editMode: boolean;
-  activeMode: 'select' | 'add_point';
-  onChangeMode: (mode: 'select' | 'add_point') => void;
+  activeMode: 'select' | 'add_point' | 'boolean';
+  onChangeMode: (mode: 'select' | 'add_point' | 'boolean') => void;
   showPolygonManager: boolean;
   onTogglePolygonManager: () => void;
   onImportClick: () => void;
@@ -33,6 +36,10 @@ interface RegionEditorToolbarToolsProps {
   hasChanges: boolean;
   saving: boolean;
   onFitBounds: () => void;
+  onAutoSnap: () => void;
+  isAutoSnapping?: boolean;
+  onAnalyze: () => void;
+  isAnalyzing?: boolean;
 }
 
 const RegionEditorToolbarTools: React.FC<RegionEditorToolbarToolsProps> = ({
@@ -56,6 +63,10 @@ const RegionEditorToolbarTools: React.FC<RegionEditorToolbarToolsProps> = ({
   hasChanges,
   saving,
   onFitBounds,
+  onAutoSnap,
+  isAutoSnapping = false,
+  onAnalyze,
+  isAnalyzing = false,
 }) => {
   const btnBase = "group relative h-8 px-1.5 rounded-lg flex justify-center items-center gap-1 transition-all duration-300 z-10";
   
@@ -76,6 +87,10 @@ const RegionEditorToolbarTools: React.FC<RegionEditorToolbarToolsProps> = ({
         return active
           ? "bg-fuchsia-600 text-white shadow-md shadow-fuchsia-600/30"
           : "text-fuchsia-600 dark:text-fuchsia-400 hover:bg-fuchsia-100/50 dark:hover:bg-fuchsia-900/30";
+      case "boolean":
+        return active
+          ? "bg-rose-600 text-white shadow-md shadow-rose-600/30"
+          : "text-rose-600 dark:text-rose-400 hover:bg-rose-100/50 dark:hover:bg-rose-900/30";
       case "import":
         return "text-amber-500 dark:text-amber-400 hover:bg-amber-100/50 dark:hover:bg-amber-900/30";
       case "export":
@@ -96,6 +111,14 @@ const RegionEditorToolbarTools: React.FC<RegionEditorToolbarToolsProps> = ({
         return active
           ? "bg-yellow-500 text-slate-900 shadow-md shadow-yellow-500/30"
           : "text-yellow-600 dark:text-yellow-500 hover:bg-yellow-100/50 dark:hover:bg-yellow-900/30";
+      case "autosnap":
+        return "text-purple-600 dark:text-purple-400 hover:bg-purple-100/50 dark:hover:bg-purple-900/30";
+      case "simplify":
+        return "text-pink-600 dark:text-pink-400 hover:bg-pink-100/50 dark:hover:bg-pink-900/30";
+      case "analyze":
+        return active
+          ? "bg-orange-500 text-white shadow-md shadow-orange-500/30"
+          : "text-orange-600 dark:text-orange-500 hover:bg-orange-100/50 dark:hover:bg-orange-900/30";
       default:
         return active
           ? "bg-slate-600 text-white shadow-md shadow-slate-600/30"
@@ -130,6 +153,17 @@ const RegionEditorToolbarTools: React.FC<RegionEditorToolbarToolsProps> = ({
             <span className="whitespace-nowrap text-xs font-semibold hidden lg:inline">Vertex</span>
           </button>
 
+          <button
+            onClick={() => onChangeMode(activeMode === "boolean" ? "select" : "boolean")}
+            className={`${btnBase} ${getThemeVars("boolean", activeMode === "boolean")}`}
+            title="Boolean Operations (Merge/Subtract)"
+          >
+            <span className={`transition-transform duration-300 ${activeMode === "boolean" ? 'scale-110' : 'group-hover:scale-110 group-hover:-translate-y-0.5'} inline-block`}>
+              <Combine size={16} strokeWidth={activeMode === "boolean" ? 2.5 : 2} />
+            </span>
+            <span className="whitespace-nowrap text-xs font-semibold hidden lg:inline">Boolean</span>
+          </button>
+
           <div className="w-px h-4 bg-slate-300/50 dark:bg-slate-600/50 mx-0.5"></div>
 
           <button
@@ -154,6 +188,48 @@ const RegionEditorToolbarTools: React.FC<RegionEditorToolbarToolsProps> = ({
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={showReferences ? 2.5 : 2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 12l10 5 10-5"/><path d="M2 17l10 5 10-5"/></svg>
             </span>
             <span className="whitespace-nowrap text-xs font-semibold hidden lg:inline">Refs</span>
+          </button>
+
+          <button
+            onClick={onAutoSnap}
+            disabled={isAutoSnapping}
+            className={`${btnBase} ${getThemeVars("autosnap", false, isAutoSnapping)}`}
+            title="Auto Snap points to Reference"
+          >
+            {isAutoSnapping ? (
+              <svg className="w-4 h-4 animate-spin text-purple-500" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4}></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              <span className={`transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-0.5 inline-block`}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 3v5h5M16 13H8M16 17H8M10 9H8"/></svg>
+              </span>
+            )}
+            <span className="whitespace-nowrap text-xs font-semibold hidden lg:inline">
+              {isAutoSnapping ? "..." : "Snap"}
+            </span>
+          </button>
+
+          <button
+            onClick={onAnalyze}
+            disabled={isAnalyzing}
+            className={`${btnBase} ${getThemeVars("analyze", false, isAnalyzing)}`}
+            title="Analyze Overlaps & Gaps"
+          >
+            {isAnalyzing ? (
+              <svg className="w-4 h-4 animate-spin text-orange-500" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4}></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              <span className={`transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-0.5 inline-block`}>
+                <ShieldAlert size={16} strokeWidth={2} />
+              </span>
+            )}
+            <span className="whitespace-nowrap text-xs font-semibold hidden lg:inline">
+              {isAnalyzing ? "..." : "Analyze"}
+            </span>
           </button>
 
           <div className="w-px h-4 bg-slate-300/50 dark:bg-slate-600/50 mx-0.5"></div>

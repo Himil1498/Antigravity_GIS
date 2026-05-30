@@ -84,24 +84,7 @@ const authenticate = async (req, res, next) => {
       // 1. Direct Permissions (from user table)
       const directPerms = user.permissions || [];
 
-      // 2. Group Permissions (Inherited)
-      // Check if groups table exists/is used. If query fails (no table), catch it silently or assume empty.
-      let groupPerms = [];
-      try {
-        const [groups] = await pool.query(
-          `SELECT g.permissions 
-             FROM "groups" g
-             JOIN group_members gm ON g.id = gm.group_id
-             WHERE gm.user_id = ? AND g.is_active::boolean = true`,
-          [user.id],
-        );
-        groupPerms = groups.reduce(
-          (acc, g) => [...acc, ...(g.permissions || [])],
-          [],
-        );
-      } catch (err) {
-        // console.warn('Group permission fetch failed (ignore if groups not used):', err.message);
-      }
+
 
       // 3. Role Permissions (Inherited)
       let rolePerms = [];
@@ -131,8 +114,8 @@ const authenticate = async (req, res, next) => {
         }
       }
 
-      // 4. Merge & Deduplicate (Direct + Group + Role)
-      user.effectivePermissions = [...new Set([...directPerms, ...groupPerms, ...rolePerms])];
+      // 4. Merge & Deduplicate (Direct + Role)
+      user.effectivePermissions = [...new Set([...directPerms, ...rolePerms])];
 
       // 3. Update Cache
       authCache.set(token, user);

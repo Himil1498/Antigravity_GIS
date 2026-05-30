@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect, useMemo, useCallback } from "react";
+import * as turf from '@turf/turf';
 import { useRegionEditor } from "./hooks/useRegionEditor";
 import { useRegionData } from "./hooks/useRegionData";
 import { useRegionMap } from "./hooks/useRegionMap";
@@ -51,6 +52,14 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
   const editor = useRegionEditor();
   const { isDarkMode, toggleDarkMode } = useTheme();
 
+  // Multi-Region Co-Editing State
+  const [activeRegionId, setActiveRegionId] = useState<number>(regionId);
+  const [draftStash, setDraftStash] = useState<Record<number, google.maps.LatLng[][][]>>({});
+
+  useEffect(() => {
+    setActiveRegionId(regionId);
+  }, [regionId]);
+
   // Local state for actions/UI not covered by useRegionEditor
   const [changeReason, setChangeReason] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
@@ -71,14 +80,25 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
   const [showBackConfirm, setShowBackConfirm] = useState(false);
 
   // Crosshair Mode State
-  const [activeMode, setActiveMode] = useState<'select' | 'add_point'>('select');
+  const [activeMode, setActiveMode] = useState<'select' | 'add_point' | 'boolean'>('select');
   const activeModeRef = useRef(activeMode);
+  
+  // Advanced Tool States
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [booleanPrompt, setBooleanPrompt] = useState<{ isOpen: boolean, regionName: string, refPoly: google.maps.Polygon | null }>({ isOpen: false, regionName: "", refPoly: null });
+  const overlapPolygonRefs = useRef<google.maps.Polygon[]>([]);
+  const gapPolygonRefs = useRef<google.maps.Polygon[]>([]);
   
   // Real-time tick to force React to update the live vertex count without relying on un-mutated boolean "hasChanges"
   const [vertexTick, setVertexTick] = useState(0);
   
   // Debounce timer ref for history saves during vertex dragging
   const historySaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isAutoSnapping, setIsAutoSnapping] = useState(false);
+
+  // Ref to hold the boolean operation function so useEffect can use it without dependencies
+  const handleBooleanOperationRef = useRef<any>(null);
 
   // Helper: snapshot the current live polygon state from Google Maps instances
   const snapshotCurrentPaths = useCallback((): google.maps.LatLng[][][] => {
@@ -102,6 +122,18 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
     setShowOriginal((prev) => !prev);
   };
 
+  const [contextSwitchTarget, setContextSwitchTarget] = useState<{id: number, name: string} | null>(null);
+
+  // Stable ref so that reference polygon click handlers always call the latest logic
+  // without needing to re-create the handlers (which would re-trigger the reference useEffect)
+  const activeRegionIdRef = useRef(activeRegionId);
+  useEffect(() => { activeRegionIdRef.current = activeRegionId; }, [activeRegionId]);
+
+  const handleSwitchContext = useCallback((clickedRegionId: number, clickedRegionName: string) => {
+    if (activeRegionIdRef.current === clickedRegionId) return;
+    setContextSwitchTarget({ id: clickedRegionId, name: clickedRegionName });
+  }, []); // stable — never recreated
+
   // 2. Load Region Data
   const {
     region,
@@ -110,14 +142,14 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
     loading: dataLoading,
     mapCenter,
     mapZoom,
-  } = useRegionData(regionId);
+  } = useRegionData(activeRegionId);
 
   // Infra Layer Data
   const {
     points: infraPoints,
     loading: infraLoading,
     setPoints: setInfraPoints,
-  } = useInfraLayer(regionId, showInfra);
+  } = useInfraLayer(activeRegionId, showInfra);
 
   // 3. Initialize Map Logic
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -137,6 +169,9 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
   // Reference Boundaries State
   const [showReferences, setShowReferences] = useState(false);
   const referencePolygonRefs = useRef<google.maps.Polygon[]>([]);
+
+  // Track which regionId we last fitted bounds for, to prevent re-zoom on undo/redo
+  const lastFittedRegionRef = useRef<number | null>(null);
 
   // Save initial polygon state to history when entering edit mode
   useEffect(() => {
@@ -163,20 +198,78 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
       return;
     }
 
+    // Stale-check flag: prevents old async fetches from wiping out newer results
+    let cancelled = false;
+
     const loadReferences = async () => {
       try {
         const res = await getAllPublishedBoundaries();
+        
+        // If this effect was cleaned up while we were fetching, abort
+        if (cancelled) return;
+
         if (res.success && res.boundaries) {
+          // Clear any previously rendered references
           referencePolygonRefs.current.forEach(p => p.setMap(null));
           referencePolygonRefs.current = [];
           
+          // Calculate active region bounding box for spatial filtering
+          const activeBounds = new google.maps.LatLngBounds();
+          polygonRefs.current.forEach(poly => {
+            const paths = poly.getPaths();
+            for (let i = 0; i < paths.getLength(); i++) {
+              const ring = paths.getAt(i);
+              for (let j = 0; j < ring.getLength(); j++) {
+                activeBounds.extend(ring.getAt(j));
+              }
+            }
+          });
+
+          // Pad bounds by ~0.5 degrees (approx 50km) to include adjacent/nearby states
+          let activeBoundsExpanded: google.maps.LatLngBounds | null = null;
+          if (!activeBounds.isEmpty()) {
+            const ne = activeBounds.getNorthEast();
+            const sw = activeBounds.getSouthWest();
+            activeBoundsExpanded = new google.maps.LatLngBounds(
+              new google.maps.LatLng(sw.lat() - 0.5, sw.lng() - 0.5),
+              new google.maps.LatLng(ne.lat() + 0.5, ne.lng() + 0.5)
+            );
+          }
+          
+          console.log(`Loaded ${res.boundaries.length} published boundaries`);
+          
           res.boundaries.forEach(b => {
              // Exclude current region safely mapping both to Numbers
-             if (Number(b.regionId) === Number(regionId)) return;
-             if (!b.boundaryGeoJSON) return;
+             if (Number(b.regionId) === Number(activeRegionId)) {
+               console.log(`Skipping active region: ${b.regionId}`);
+               return;
+             }
+             if (!b.boundaryGeoJSON) {
+               console.log(`Region ${b.regionId} has no GeoJSON`);
+               return;
+             }
              
              try {
                const refPaths = geojsonToGooglePaths(b.boundaryGeoJSON);
+
+               // Spatial Filter: Nearest Reference Filter (only show if intersects expanded bounds)
+               if (activeBoundsExpanded) {
+                 const refBounds = new google.maps.LatLngBounds();
+                 refPaths.forEach(polygonPath => {
+                   polygonPath.forEach(ring => {
+                     ring.forEach((pt: any) => {
+                       const lat = typeof pt.lat === 'function' ? pt.lat() : pt.lat;
+                       const lng = typeof pt.lng === 'function' ? pt.lng() : pt.lng;
+                       refBounds.extend(new google.maps.LatLng(lat, lng));
+                     });
+                   });
+                 });
+                 if (!activeBoundsExpanded.intersects(refBounds)) {
+                   // Too far away, skip rendering this reference
+                   return;
+                 }
+               }
+
                refPaths.forEach(path => {
                   const polygon = new google.maps.Polygon({
                     paths: path,
@@ -186,29 +279,76 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
                     fillColor: isDarkMode ? "#374151" : "#E5E7EB",
                     fillOpacity: 0.1,
                     editable: false,
-                    clickable: false,
+                    clickable: true,
                     map: mapRef.current,
                     zIndex: -1
                   });
+                  
+                  google.maps.event.addListener(polygon, 'click', () => {
+                     if (activeModeRef.current === 'boolean') {
+                       setBooleanPrompt({ isOpen: true, regionName: b.regionName, refPoly: polygon });
+                     } else {
+                       handleSwitchContext(b.regionId, b.regionName);
+                     }
+                  });
+
                   referencePolygonRefs.current.push(polygon);
                });
              } catch(e) {
                console.warn("Failed to render reference boundary for region", b.regionId, e);
              }
           });
+
+          // Also render stashed (unsaved/draft) boundaries as reference overlays
+          // so regions that have no published boundary still appear after context switch
+          Object.entries(draftStash).forEach(([stashedIdStr, stashedPaths]) => {
+            const stashedId = Number(stashedIdStr);
+            if (stashedId === Number(activeRegionId)) return; // skip active region
+            // Skip if this region already has a published boundary rendered above
+            const alreadyRendered = res.boundaries.some(
+              (b) => Number(b.regionId) === stashedId
+            );
+            if (alreadyRendered) return;
+
+            stashedPaths.forEach(path => {
+              const polygon = new google.maps.Polygon({
+                paths: path,
+                strokeColor: "#06B6D4", // Cyan to distinguish stashed drafts
+                strokeOpacity: 0.7,
+                strokeWeight: 2,
+                fillColor: "#06B6D4",
+                fillOpacity: 0.05,
+                editable: false,
+                clickable: true,
+                map: mapRef.current,
+                zIndex: -1
+              });
+
+              google.maps.event.addListener(polygon, 'click', () => {
+                handleSwitchContext(stashedId, `Stashed Region #${stashedId}`);
+              });
+
+              referencePolygonRefs.current.push(polygon);
+            });
+          });
         }
       } catch(err) {
         console.error("Failed to load reference boundaries", err);
       }
     };
-
-    loadReferences();
     
+    loadReferences();
+
     return () => {
+       cancelled = true; // Mark stale so the async fetch above aborts
        referencePolygonRefs.current.forEach(p => p.setMap(null));
        referencePolygonRefs.current = [];
+       overlapPolygonRefs.current.forEach(p => p.setMap(null));
+       overlapPolygonRefs.current = [];
+       gapPolygonRefs.current.forEach(p => p.setMap(null));
+       gapPolygonRefs.current = [];
     };
-  }, [showReferences, regionId, isDarkMode, mapRef.current]);
+  }, [showReferences, activeRegionId, isDarkMode, mapRef.current, boundaryData]);
 
   // Keyboard shortcuts: Ctrl+Z (Undo), Ctrl+Y / Ctrl+Shift+Z (Redo)
   useEffect(() => {
@@ -246,8 +386,7 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
       const map = new google.maps.Map(mapContainerRef.current, {
         center: mapCenter,
         zoom: mapZoom,
-        mapId: "e8aea2a23d836c7d4bd283d8", // Required for 3D Vector Maps
-        mapTypeId: isDarkMode ? "roadmap" : "roadmap", // Force roadmap for WebGL 3D
+        mapTypeId: isDarkMode ? "roadmap" : "roadmap",
         styles: isDarkMode ? darkMapStyle : [],
         streetViewControl: false,
         mapTypeControl: false,
@@ -274,6 +413,7 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
     if (mapRef.current) {
       mapRef.current.setOptions({
         styles: isDarkMode ? darkMapStyle : [],
+        colorScheme: isDarkMode ? 'DARK' : 'LIGHT'
       });
     }
   }, [isDarkMode, mapRef.current]);
@@ -353,6 +493,11 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
   useEffect(() => {
     if (!mapRef.current || !boundaryData) return;
 
+    // ROBUST GUARD: Do NOT render if boundaryData belongs to a different region.
+    // This prevents the race condition where activeRegionId has changed but
+    // useRegionData hasn't finished fetching the new region's data yet.
+    if (Number(boundaryData.regionId) !== Number(activeRegionId)) return;
+
     // Clear existing polygons
     clearMap();
 
@@ -380,10 +525,29 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
           // Allow deleting vertices on right click
           google.maps.event.addListener(polygon, "rightclick", (e: any) => {
             if (e.vertex !== undefined) {
-              const path = polygon.getPath();
-              // Prevent deleting if only 3 points left (minimum for a polygon)
-              if (path.getLength() > 3) {
-                path.removeAt(e.vertex);
+              const pathIdx = e.path !== undefined ? e.path : 0;
+              const paths = polygon.getPaths();
+              const path = paths.getAt(pathIdx);
+              
+              if (path) {
+                if (path.getLength() > 3) {
+                  path.removeAt(e.vertex);
+                } else {
+                  // Deleting a vertex from a triangle destroys the polygon ring
+                  paths.removeAt(pathIdx);
+                  
+                  // If no paths left, remove the polygon completely
+                  if (paths.getLength() === 0) {
+                      polygon.setMap(null);
+                      polygonRefs.current = polygonRefs.current.filter(p => p !== polygon);
+                  }
+                  
+                  // Sync changes to state and history
+                  editor.setHasChanges(true);
+                  const currentPaths = snapshotCurrentPaths();
+                  editor.history.saveToHistory(currentPaths);
+                  editor.setEditablePaths(currentPaths); // Force re-render to reflect destroyed polygons
+                }
               }
             }
           });
@@ -453,11 +617,71 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
 
           // Bind vertex edit tracking to EVERY path ring (exterior and holes) within the polygon
           const polyPaths = polygon.getPaths();
+          let isSnapping = false; // Mutex to prevent recursive set_at triggers
+          let snapTimer: any = null; // Debounce for Turf edge snapping
+
           for (let pIdx = 0; pIdx < polyPaths.getLength(); pIdx++) {
             const ringPath = polyPaths.getAt(pIdx);
             ["set_at", "insert_at", "remove_at"].forEach((evt) => {
-              google.maps.event.addListener(ringPath, evt, () => {
+              google.maps.event.addListener(ringPath, evt, (vertexIndex: number) => {
                 editor.setHasChanges(true);
+                
+                // --- MAGNETIC EDGE SNAPPING ---
+                if ((evt === "set_at" || evt === "insert_at") && vertexIndex !== undefined && !isSnapping) {
+                   if (snapTimer) clearTimeout(snapTimer);
+                   
+                   if (showReferences && referencePolygonRefs.current.length > 0) {
+                       snapTimer = setTimeout(() => {
+                           try {
+                               const vertex = ringPath.getAt(vertexIndex);
+                               if (!vertex) return;
+                               
+                               let minDistance = Infinity;
+                               let nearestPt: google.maps.LatLng | null = null;
+                               const turfPt = turf.point([vertex.lng(), vertex.lat()]);
+                               
+                               referencePolygonRefs.current.forEach(refPoly => {
+                                   if (!refPoly.getMap()) return;
+                                   const refPaths = refPoly.getPaths();
+                                   const refRings: google.maps.LatLng[][] = [];
+                                   for (let i = 0; i < refPaths.getLength(); i++) {
+                                       const refRing = refPaths.getAt(i);
+                                       const pts: google.maps.LatLng[] = [];
+                                       for (let j = 0; j < refRing.getLength(); j++) {
+                                           pts.push(refRing.getAt(j));
+                                       }
+                                       refRings.push(pts);
+                                   }
+                                   if (refRings.length === 0) return;
+                                   
+                                   const refGeojson = googlePathsToGeoJSON([refRings]);
+                                   const refFeature = { type: 'Feature', properties: {}, geometry: refGeojson };
+                                   const refLines = turf.polygonToLine(refFeature as any);
+                                   
+                                   const nearest = turf.nearestPointOnLine(refLines as any, turfPt);
+                                   if (nearest && nearest.properties && nearest.properties.dist < minDistance) {
+                                       minDistance = nearest.properties.dist;
+                                       nearestPt = new google.maps.LatLng(nearest.geometry.coordinates[1], nearest.geometry.coordinates[0]);
+                                   }
+                               });
+        
+                               // Snap if within ~2km (2 in Turf distance which is km)
+                               if (nearestPt && minDistance < 2) {
+                                   isSnapping = true;
+                                   ringPath.setAt(vertexIndex, nearestPt);
+                                   isSnapping = false;
+                                   
+                                   if (historySaveTimerRef.current) clearTimeout(historySaveTimerRef.current);
+                                   const currentPaths = snapshotCurrentPaths();
+                                   editor.history.saveToHistory(currentPaths);
+                               }
+                           } catch(e) {
+                               console.warn("Magnetic snap failed silently:", e);
+                           }
+                       }, 150); // 150ms debounce so it snaps just after user stops dragging
+                   }
+                }
+                // ------------------------------
                 
                 // Force vertex count UI re-render only when vertices are dynamically added/removed
                 if (evt === "insert_at" || evt === "remove_at") {
@@ -503,13 +727,21 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
       });
 
       // Initialize editor state with paths if starting fresh
-      if (editor.editablePaths.length === 0 && googlePaths.length > 0) {
-        editor.setEditablePaths(googlePaths);
+      if (editor.editablePaths.length === 0) {
+        const stash = draftStash[activeRegionId];
+        if (stash && stash.length > 0) {
+           editor.setEditablePaths(stash);
+           editor.setEditMode(true);
+           editor.setHasChanges(true);
+        } else if (googlePaths.length > 0) {
+           editor.setEditablePaths(googlePaths);
+        }
       }
 
-      // Auto-Zoom to Polygon (only if we have paths)
-      if (pathsToRender.length > 0) {
+      // Auto-Zoom to Polygon ONLY on initial load or region switch (not on undo/redo)
+      if (pathsToRender.length > 0 && lastFittedRegionRef.current !== activeRegionId) {
         fitBounds(pathsToRender);
+        lastFittedRegionRef.current = activeRegionId;
       }
     });
 
@@ -523,6 +755,8 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
     clearMap,
     editor.editMode,
     fitBounds,
+    draftStash,
+    activeRegionId
     // NOTE: infraPoints and showInfra intentionally removed — they have their own useEffect for rendering infra markers.
     // Including them here would re-run this effect on infra state changes, calling clearMap() and destroying polygon click listeners.
   ]);
@@ -644,7 +878,7 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
 
   // 4. Initialize Actions
   const actions = useRegionActions({
-    regionId,
+    regionId: activeRegionId,
     editMode: editor.editMode,
     hasChanges: editor.hasChanges,
     saving: editor.saving,
@@ -671,7 +905,7 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
   const importExport = useRegionImportExport(
     region,
     boundaryData,
-    regionId,
+    activeRegionId,
     editor.setEditablePaths,
     editor.setEditMode,
     editor.setHasChanges,
@@ -759,6 +993,271 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
     );
   }
 
+  const handleAutoSnap = () => {
+    if (!polygonRefs.current.length) {
+      setActionError("No active boundary to snap.");
+      return;
+    }
+    if (!referencePolygonRefs.current.length || !showReferences) {
+      setActionError("Please turn on 'Refs' to snap to reference boundaries.");
+      return;
+    }
+
+    setIsAutoSnapping(true);
+    document.body.style.cursor = 'wait'; // Show loading cursor on the entire map/page
+    
+    // Give browser time to paint loading state before blocking thread
+    setTimeout(() => {
+      let snappedCount = 0;
+      const newEditablePaths: google.maps.LatLng[][][] = [];
+
+      // For each path in our editable polygon
+      polygonRefs.current.forEach(polygon => {
+        const paths = polygon.getPaths();
+        const polygonPaths: google.maps.LatLng[][] = [];
+
+      for (let p = 0; p < paths.getLength(); p++) {
+        const ring = paths.getAt(p);
+        const ringPaths: google.maps.LatLng[] = [];
+
+        // Helper to find nearest reference point
+        const getNearestRef = (pt: google.maps.LatLng) => {
+          let minD = Infinity;
+          let nearestPt: any = null;
+          referencePolygonRefs.current.forEach(refPoly => {
+            if (!refPoly.getMap()) return;
+            const refPaths = refPoly.getPaths();
+            for (let i = 0; i < refPaths.getLength(); i++) {
+              const refRing = refPaths.getAt(i);
+              for (let j = 0; j < refRing.getLength(); j++) {
+                const refVertex = refRing.getAt(j);
+                const d = google.maps.geometry.spherical.computeDistanceBetween(pt, refVertex);
+                if (d < minD) { minD = d; nearestPt = refVertex; }
+              }
+            }
+          });
+          return { minD, nearestPt };
+        };
+
+        // Pre-calculate reference bounding boxes per-ring with ~15km padding (0.15 degrees)
+        const refBoundingBoxes: google.maps.LatLngBounds[] = [];
+        referencePolygonRefs.current.forEach(refPoly => {
+          if (!refPoly.getMap()) return;
+          const refPaths = refPoly.getPaths();
+          for (let i = 0; i < refPaths.getLength(); i++) {
+            const bounds = new google.maps.LatLngBounds();
+            const refRing = refPaths.getAt(i);
+            for (let j = 0; j < refRing.getLength(); j++) {
+               bounds.extend(refRing.getAt(j));
+            }
+            if (!bounds.isEmpty()) {
+              const ne = bounds.getNorthEast();
+              const sw = bounds.getSouthWest();
+              refBoundingBoxes.push(new google.maps.LatLngBounds(
+                new google.maps.LatLng(sw.lat() - 0.15, sw.lng() - 0.15),
+                new google.maps.LatLng(ne.lat() + 0.15, ne.lng() + 0.15)
+              ));
+            }
+          }
+        });
+
+        const snappedRing: google.maps.LatLng[] = [];
+        
+        // Process each segment of the ring
+        for (let v = 0; v < ring.getLength(); v++) {
+          const p1 = ring.getAt(v);
+          const p2 = ring.getAt((v + 1) % ring.getLength());
+          
+          // 1. Process original point p1 (always keep it)
+          const { minD: minD1, nearestPt: near1 } = getNearestRef(p1);
+          if (near1 && minD1 < 15000 && minD1 > 0.01) {
+            snappedRing.push(new google.maps.LatLng(near1.lat(), near1.lng()));
+            snappedCount++;
+          } else {
+            snappedRing.push(new google.maps.LatLng(p1.lat(), p1.lng()));
+          }
+
+          // 2. Dynamically densify the segment if it's near a reference boundary
+          const segmentLen = google.maps.geometry.spherical.computeDistanceBetween(p1, p2);
+          const isNearRef = refBoundingBoxes.some(b => b.contains(p1) || b.contains(p2));
+
+          if (segmentLen > 100 && isNearRef) {
+            const steps = Math.min(Math.ceil(segmentLen / 100), 300); // 100m resolution, safety cap at 30km
+            for (let s = 1; s < steps; s++) {
+              const injectedPt = google.maps.geometry.spherical.interpolate(p1, p2, s / steps);
+              
+              // CRITICAL: Only keep injected points if they ACTUALLY snap to a reference!
+              // This completely prevents bloating straight lines with unnecessary points.
+              const { minD: minDInj, nearestPt: nearInj } = getNearestRef(injectedPt);
+              if (nearInj && minDInj < 15000 && minDInj > 0.01) {
+                snappedRing.push(new google.maps.LatLng(nearInj.lat(), nearInj.lng()));
+                snappedCount++;
+              }
+            }
+          }
+        }
+        
+        // Step 3: Deduplicate consecutive identical points to prevent map lag (e.g., 50 points snapping to the same vertex)
+        const finalRingPaths: google.maps.LatLng[] = [];
+        for (let i = 0; i < snappedRing.length; i++) {
+          const pt = snappedRing[i];
+          if (finalRingPaths.length === 0) {
+            finalRingPaths.push(pt);
+          } else {
+            const lastPt = finalRingPaths[finalRingPaths.length - 1];
+            const dist = google.maps.geometry.spherical.computeDistanceBetween(lastPt, pt);
+            // If distance > 1 meter, it's a distinct point. Otherwise skip it.
+            if (dist > 1) {
+              finalRingPaths.push(pt);
+            }
+          }
+        }
+        
+        // Ensure polygon closes properly if needed, but Google Maps handles polygon closure implicitly.
+        polygonPaths.push(finalRingPaths);
+      }
+      newEditablePaths.push(polygonPaths);
+    });
+
+    if (snappedCount > 0) {
+      editor.setHasChanges(true);
+      editor.setEditablePaths(newEditablePaths);
+      editor.history.saveToHistory(newEditablePaths);
+      setVertexTick(t => t + 1);
+      setActionSuccess(`Auto-snapped ${snappedCount} points to nearest references!`);
+    } else {
+      setActionSuccess("Points are already aligned or too far to snap (must be within 15km).");
+    }
+    setIsAutoSnapping(false);
+    document.body.style.cursor = 'default';
+    }, 50);
+  };
+
+  const handleAnalyze = () => {
+    if (showAnalysis) {
+      overlapPolygonRefs.current.forEach(p => p.setMap(null));
+      overlapPolygonRefs.current = [];
+      setShowAnalysis(false);
+      return;
+    }
+
+    if (!showReferences || !referencePolygonRefs.current.length) {
+      setActionError("Please turn on 'Refs' to analyze overlaps with neighbors.");
+      return;
+    }
+    if (!region || !editor.editablePaths || editor.editablePaths.length === 0) return;
+    
+    setIsAnalyzing(true);
+    overlapPolygonRefs.current.forEach(p => p.setMap(null));
+    overlapPolygonRefs.current = [];
+    gapPolygonRefs.current.forEach(p => p.setMap(null));
+    gapPolygonRefs.current = [];
+
+    setTimeout(() => {
+      try {
+        const activeGeojson = googlePathsToGeoJSON(editor.editablePaths);
+        let overlapFound = false;
+
+        referencePolygonRefs.current.forEach(refPoly => {
+          if (!refPoly.getMap()) return;
+          const refPaths = refPoly.getPaths();
+          const refRings: google.maps.LatLng[][] = [];
+          for (let i = 0; i < refPaths.getLength(); i++) {
+            const ring = refPaths.getAt(i);
+            const pts: google.maps.LatLng[] = [];
+            for (let j = 0; j < ring.getLength(); j++) {
+              pts.push(ring.getAt(j));
+            }
+            refRings.push(pts);
+          }
+          if (refRings.length === 0) return;
+          const refGeojson = googlePathsToGeoJSON([refRings]);
+          
+          const activeFeature = { type: 'Feature', properties: {}, geometry: activeGeojson };
+          const refFeature = { type: 'Feature', properties: {}, geometry: refGeojson };
+          const overlap = turf.intersect(turf.featureCollection([activeFeature, refFeature] as any));
+          if (overlap) {
+            overlapFound = true;
+            const overlapPaths = geojsonToGooglePaths(overlap.geometry as any);
+            overlapPaths.forEach(paths => {
+              const poly = new google.maps.Polygon({
+                paths,
+                fillColor: "#FF0000",
+                fillOpacity: 0.6,
+                strokeColor: "#FF0000",
+                strokeWeight: 2,
+                zIndex: 100,
+                map: mapRef.current
+              });
+              overlapPolygonRefs.current.push(poly);
+            });
+          }
+        });
+
+        setShowAnalysis(true);
+        if (overlapFound) {
+          setActionError("Overlaps detected! Highlighted in Red.");
+        } else {
+          setActionSuccess("No overlaps detected!");
+        }
+      } catch(err) {
+        console.error("Analyze failed:", err);
+        setActionError("Failed to analyze boundary.");
+      } finally {
+        setIsAnalyzing(false);
+      }
+    }, 50);
+  };
+
+  handleBooleanOperationRef.current = (operation: 'merge' | 'subtract', refPoly: google.maps.Polygon) => {
+    if (!region || !editor.editablePaths || editor.editablePaths.length === 0) return;
+    try {
+      const activeGeojson = googlePathsToGeoJSON(editor.editablePaths);
+      
+      const refPaths = refPoly.getPaths();
+      const refRings: google.maps.LatLng[][] = [];
+      for (let i = 0; i < refPaths.getLength(); i++) {
+        const ring = refPaths.getAt(i);
+        const pts: google.maps.LatLng[] = [];
+        for (let j = 0; j < ring.getLength(); j++) {
+          pts.push(ring.getAt(j));
+        }
+        refRings.push(pts);
+      }
+      const refGeojson = googlePathsToGeoJSON([refRings]);
+      
+      const activeFeature = { type: 'Feature', properties: {}, geometry: activeGeojson };
+      const refFeature = { type: 'Feature', properties: {}, geometry: refGeojson };
+      
+      let resultFeature: any = null;
+      if (operation === 'merge') {
+        resultFeature = turf.union(turf.featureCollection([activeFeature, refFeature] as any));
+      } else if (operation === 'subtract') {
+        resultFeature = turf.difference(turf.featureCollection([activeFeature, refFeature] as any));
+        if (!resultFeature) {
+           setBooleanPrompt(prev => ({ ...prev, isOpen: false }));
+           setActionError("Subtracting this region completely deletes your active region!");
+           return;
+        }
+      }
+
+      if (resultFeature && resultFeature.geometry) {
+        const newPaths = geojsonToGooglePaths(resultFeature.geometry as any);
+        if (newPaths && newPaths.length > 0) {
+          editor.setEditablePaths(newPaths);
+          editor.history.saveToHistory(newPaths);
+          setVertexTick(t => t + 1);
+          setBooleanPrompt(prev => ({ ...prev, isOpen: false }));
+          setActionSuccess(`Successfully ${operation === 'merge' ? 'merged' : 'subtracted'} the region!`);
+        }
+      }
+    } catch(err) {
+      console.error(`Boolean operation ${operation} failed:`, err);
+      setBooleanPrompt(prev => ({ ...prev, isOpen: false }));
+      setActionError(`Failed to ${operation} regions. The shapes might be too complex.`);
+    }
+  };
+
   return (
     <div
       id="region-map-wrapper"
@@ -790,6 +1289,10 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
               onChangeMode={setActiveMode}
               showPolygonManager={editor.showPolygonManager}
               onTogglePolygonManager={() => editor.setShowPolygonManager(!editor.showPolygonManager)}
+              onAutoSnap={handleAutoSnap}
+              isAutoSnapping={isAutoSnapping}
+              onAnalyze={handleAnalyze}
+              isAnalyzing={isAnalyzing}
               onImportClick={() => fileInputRef.current?.click()}
               onExportClick={importExport.handleExportGeoJSON}
               onResetClick={() => editor.setShowResetDialog(true)}
@@ -1089,6 +1592,11 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
             editor.setHasChanges(false);
             editor.setEditMode(false);
             setChangeReason("");
+            setDraftStash(prev => {
+                const p = {...prev};
+                delete p[activeRegionId];
+                return p;
+            });
 
             const { boundaryCache } =
               await import("../../../services/region/boundaryCache");
@@ -1120,6 +1628,11 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
           
           if (boundaryData && boundaryData.geojson) {
              editor.setEditablePaths([]);
+             setDraftStash(prev => {
+                const p = {...prev};
+                delete p[activeRegionId];
+                return p;
+             });
           }
         }}
       />
@@ -1230,6 +1743,46 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
         setImportPreview={importExport.setImportPreview}
       />
 
+      {booleanPrompt.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-700/50 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <h3 className="text-xl font-bold text-white mb-2">Boolean Operation</h3>
+            <p className="text-slate-300 text-sm mb-6">
+              What would you like to do with <span className="text-blue-400 font-semibold">{booleanPrompt.regionName}</span> against your active boundary?
+            </p>
+            
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  if (booleanPrompt.refPoly) handleBooleanOperationRef.current?.('merge', booleanPrompt.refPoly);
+                }}
+                className="w-full flex items-center justify-between px-4 py-3 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-xl text-blue-400 transition-colors"
+              >
+                <span className="font-semibold">Merge (Union)</span>
+                <span className="text-xs opacity-70">Combine shapes together</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  if (booleanPrompt.refPoly) handleBooleanOperationRef.current?.('subtract', booleanPrompt.refPoly);
+                }}
+                className="w-full flex items-center justify-between px-4 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 transition-colors"
+              >
+                <span className="font-semibold">Subtract (Difference)</span>
+                <span className="text-xs opacity-70">Punch a hole / Cut out</span>
+              </button>
+              
+              <button
+                onClick={() => setBooleanPrompt(prev => ({ ...prev, isOpen: false }))}
+                className="w-full mt-2 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ConfirmDialog
         isOpen={showBackConfirm}
         onClose={() => setShowBackConfirm(false)}
@@ -1241,6 +1794,40 @@ const RegionBoundaryEditor: React.FC<RegionBoundaryEditorProps> = ({
         message="You have unsaved changes to the boundary. Are you sure you want to go back? All your edits will be lost."
         confirmText="Yes, Go Back"
         cancelText="Stay Here"
+        type="warning"
+      />
+
+      <ConfirmDialog
+        isOpen={contextSwitchTarget !== null}
+        onClose={() => setContextSwitchTarget(null)}
+        onConfirm={() => {
+          if (!contextSwitchTarget) return;
+          // Stash current edits before switching
+          const currentPaths = snapshotCurrentPaths();
+          setDraftStash(prev => ({ ...prev, [activeRegionId]: currentPaths }));
+
+          // IMMEDIATELY clear map polygons so old editable handles disappear
+          clearMap();
+
+          // Clear editor state so the new region's data loads fresh
+          editor.setEditablePaths([]);
+          editor.setHasChanges(false);
+          editor.history.clearHistory();
+          
+          // Reset fitBounds tracking so the new region gets zoomed to
+          lastFittedRegionRef.current = null;
+          
+          setActiveRegionId(contextSwitchTarget.id);
+          setContextSwitchTarget(null);
+          
+          // Auto-deactivate references button as requested by user
+          // They can manually turn it back on after the new region loads.
+          setShowReferences(false);
+        }}
+        title="Switch Editing Context"
+        message={`Do you want to stash your current edits and switch to editing ${contextSwitchTarget?.name}?`}
+        confirmText="Yes, Switch Context"
+        cancelText="Cancel"
         type="warning"
       />
 

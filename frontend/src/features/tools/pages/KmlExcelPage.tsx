@@ -19,6 +19,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
 import { usePermission } from '../../../hooks/usePermission';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { darkMapStyle } from '../../map/utils/mapStyles';
 
 // --- Types ---
 interface ParsedPoint {
@@ -41,6 +43,7 @@ const defaultCenter = { lat: 23.0225, lng: 72.5714 };
 
 const KmlExcelPage: React.FC = () => {
   const { state, saveKmlExcelState } = useToolsContext();
+  const { isDarkMode } = useTheme();
 
   const [file, setFile] = useState<File | null>(state.kmlExcel.file);
   const [previewData, setPreviewData] = useState<ParsedPoint[]>(state.kmlExcel.previewData);
@@ -539,7 +542,7 @@ const KmlExcelPage: React.FC = () => {
                                 mapTypeControl: true,
                                 fullscreenControl: true,
                                 gestureHandling: 'greedy',
-                                styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }]
+                                styles: isDarkMode ? darkMapStyle : [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }]
                             }}
                         >
                             {previewData.map(point => (

@@ -109,16 +109,16 @@ export const useMapInitialization = () => {
     }
 
     if (isLoaded && mapContainerRef.current && window.google) {
-      const expectedThemeKey = isDarkMode ? 'dark' : 'light';
-      // Check if map needs recreation (either no map, or the theme has changed)
-      const needsRecreation = !mapInstance || activeMapIdRef.current !== expectedThemeKey;
+      // Check if map needs recreation (only if no map exists)
+      const needsRecreation = !mapInstance;
 
       if (needsRecreation) {
-        activeMapIdRef.current = expectedThemeKey;
         // Prepare custom map options from user preferences and active theme
+        // NOTE: We intentionally omit mapId here. Vector maps (with mapId) ignore local JSON styles,
+        // which prevents dynamic dark mode toggling without destroying the map.
+        const { getDefaultMapOptions } = require("../../../contexts/GoogleMapsContextTypes");
         const customOptions: Partial<google.maps.MapOptions> = {
-          styles: isDarkMode ? darkMapStyle : [],
-          mapId: MAPS_CONFIG.mapId,
+          styles: isDarkMode ? darkMapStyle : getDefaultMapOptions().styles || null,
           colorScheme: isDarkMode ? 'DARK' : 'LIGHT'
         };
 
@@ -198,7 +198,7 @@ export const useMapInitialization = () => {
     dispatch,
     userPreferences,
     preferencesLoaded,
-    isDarkMode, // Important: must depend on isDarkMode to recreate map on theme change
+    isDarkMode
   ]);
 
   // Re-apply preferences after map (re)creation — ensures tab-switch and login both work
@@ -276,9 +276,17 @@ export const useMapInitialization = () => {
   useEffect(() => {
     if (mapInstance && window.google) {
       if (isDarkMode) {
-        mapInstance.setOptions({ styles: darkMapStyle });
+        mapInstance.setOptions({ 
+          styles: darkMapStyle,
+          colorScheme: 'DARK'
+        });
       } else {
-        mapInstance.setOptions({ styles: [] }); // Reset to default light mode
+        // Must pass null or the original base styles to properly clear the previous darkMapStyle
+        const { getDefaultMapOptions } = require("../../../contexts/GoogleMapsContextTypes");
+        mapInstance.setOptions({ 
+          styles: getDefaultMapOptions().styles || null,
+          colorScheme: 'LIGHT'
+        }); 
       }
     }
   }, [mapInstance, isDarkMode]);
